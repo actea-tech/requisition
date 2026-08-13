@@ -28,3 +28,8 @@ grant execute on function submit_requisition(uuid, uuid) to authenticated;
 grant execute on function resubmit_requisition(uuid, uuid) to authenticated;
 grant execute on function record_approval_action(uuid, uuid, approval_decision, text) to authenticated;
 grant execute on function complete_payment_processing(uuid, uuid, text) to authenticated;
+
+-- Called by the admin invite Server Action via the service-role client. In
+-- most Supabase projects service_role already gets this by default, but
+-- state it explicitly rather than depend on that.
+grant execute on function enqueue_email(uuid, text, text[], jsonb, text[]) to service_role;
