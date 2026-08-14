@@ -45,6 +45,7 @@ export interface Database {
           role: UserRole;
           department_id: string | null;
           is_active: boolean;
+          must_change_password: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -283,6 +284,7 @@ export interface Database {
         Returns: void;
       };
       get_eligible_approver_ids: { Args: { p_requisition_id: string; p_stage_key: ApprovalStageKey }; Returns: string[] };
+      clear_must_change_password: { Args: Record<string, never>; Returns: void };
       enqueue_email: {
         Args: {
           p_requisition_id: string | null;

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -6,6 +7,7 @@ import { navItemsForRole } from "@/lib/nav";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireProfile();
+  if (profile.must_change_password) redirect("/change-password");
 
   return (
     <SidebarProvider>

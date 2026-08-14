@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -20,18 +21,17 @@ export async function inviteUser(_prevState: { error: string | null }, formData:
 
   const supabaseAdmin = createAdminClient();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const tempPassword = randomBytes(9).toString("base64url");
 
-  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-    type: "invite",
+  const { error } = await supabaseAdmin.auth.admin.createUser({
     email,
-    options: {
-      data: { full_name: fullName, role, department_id: departmentId },
-      redirectTo: `${appUrl}/invite-accept`,
-    },
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: { full_name: fullName, role, department_id: departmentId },
   });
 
-  if (error || !data) {
-    return { error: error?.message ?? "Could not create the invite." };
+  if (error) {
+    return { error: error.message };
   }
 
   const { data: department } = departmentId
@@ -46,7 +46,8 @@ export async function inviteUser(_prevState: { error: string | null }, formData:
       full_name: fullName,
       role_label: ROLE_LABELS[role],
       department_name: department?.name ?? null,
-      invite_link: data.properties.action_link,
+      temp_password: tempPassword,
+      login_link: `${appUrl}/login`,
     },
   });
 
