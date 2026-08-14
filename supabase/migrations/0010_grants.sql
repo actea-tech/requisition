@@ -29,6 +29,12 @@ grant execute on function resubmit_requisition(uuid, uuid) to authenticated;
 grant execute on function record_approval_action(uuid, uuid, approval_decision, text) to authenticated;
 grant execute on function complete_payment_processing(uuid, uuid, text) to authenticated;
 
+-- The requisition detail page calls this directly (not from inside an
+-- already-elevated function) to check "can the current viewer act on this
+-- requisition right now" — reusing the engine's own eligibility logic
+-- instead of re-deriving it in application code.
+grant execute on function get_eligible_approver_ids(uuid, approval_stage_key) to authenticated;
+
 -- Called by the admin invite Server Action via the service-role client. In
 -- most Supabase projects service_role already gets this by default, but
 -- state it explicitly rather than depend on that.

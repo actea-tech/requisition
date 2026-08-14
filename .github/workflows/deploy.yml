@@ -1,0 +1,47 @@
+name: Deploy to Hostinger
+
+# Manual trigger only — deploying is a deliberate action, and this needs
+# secrets configured first (see DEPLOYMENT.md). Once you're comfortable
+# with it, you can add `push: { branches: [main] }` to auto-deploy.
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+
+      - name: Deploy standalone build over SSH
+        uses: burnett01/rsync-deployments@7.1.0
+        with:
+          switches: -avz --delete
+          path: .next/standalone/
+          remote_path: ${{ secrets.HOSTINGER_APP_PATH }}
+          remote_host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          remote_port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          remote_user: ${{ secrets.HOSTINGER_SSH_USER }}
+          remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
+
+      - name: Restart the Node.js app (Passenger soft restart)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            mkdir -p ${{ secrets.HOSTINGER_APP_PATH }}/tmp
+            touch ${{ secrets.HOSTINGER_APP_PATH }}/tmp/restart.txt

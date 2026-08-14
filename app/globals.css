@@ -154,3 +154,12 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+@media print {
+  [data-slot="sidebar"],
+  [data-slot="sidebar-rail"],
+  [data-slot="sidebar-gap"],
+  header {
+    display: none !important;
+  }
+}
