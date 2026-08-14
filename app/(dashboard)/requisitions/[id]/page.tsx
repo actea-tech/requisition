@@ -58,7 +58,16 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const isOwner = requisition.requester_id === profile.id;
   const isAdmin = profile.role === "admin";
 
-  const stageKey = stageKeyForStatus(requisition.status);
+  // A "return to previous stage" targets that stage's approver(s) — treat
+  // them exactly as if the requisition were back at that stage (same
+  // decide panel, same field-edit rules), rather than a separate
+  // edit-then-"Resubmit" flow. stage_key_for_status only recognizes the
+  // active review statuses, so resolve against returned_from_stage first.
+  const isReturnedToPreviousStage =
+    requisition.status === "returned" && requisition.return_to === "previous_stage" && requisition.returned_from_stage !== null;
+  const effectiveStatus = isReturnedToPreviousStage ? requisition.returned_from_stage! : requisition.status;
+  const stageKey = stageKeyForStatus(effectiveStatus);
+
   let isEligibleApprover = false;
   if (stageKey && stageKey !== "payment") {
     const { data: eligibleIds } = await supabase.rpc("get_eligible_approver_ids", {
@@ -73,23 +82,10 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const canEditFinalProcessing =
     stageKey === "payment" && (isAdmin || requisition.finance_accountant_id === profile.id);
 
-  // A "return to previous stage" targets that stage's approver(s) — they
-  // need to edit + resubmit the same way the requester normally would.
-  let canEditReturned = false;
-  if (requisition.status === "returned") {
-    if (requisition.return_to !== "previous_stage") {
-      canEditReturned = isOwner;
-    } else if (requisition.returned_from_stage === "dept_review") {
-      const { data: deptEligible } = await supabase.rpc("get_eligible_approver_ids", {
-        p_requisition_id: id,
-        p_stage_key: "department",
-      });
-      canEditReturned = isAdmin || Boolean(deptEligible?.includes(profile.id));
-    } else if (requisition.returned_from_stage === "finance_review") {
-      canEditReturned = isAdmin || profile.role === "finance_accountant" || profile.role === "finance_reviewer";
-    }
-  }
-  const canEditDraftFields = (isOwner && requisition.status === "draft") || canEditReturned;
+  // The requester's own edit-then-submit/resubmit flow — draft, or
+  // returned straight back to them (not redirected to a previous stage).
+  const canEditDraftFields =
+    isOwner && (requisition.status === "draft" || (requisition.status === "returned" && !isReturnedToPreviousStage));
   const canUploadAttachments = canEditDraftFields || canEditFinance || isAdmin;
 
   const previousStageLabel = stageKey === "finance" ? "Department Head" : stageKey === "director" ? "Finance" : null;
