@@ -61,7 +61,16 @@ export function wrapEmailHtml(opts: { title: string; bodyHtml: string; logoUrl: 
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;border:1px solid ${BRAND.border};overflow:hidden;">
             <tr>
               <td style="padding:24px 32px;border-bottom:1px solid ${BRAND.border};">
-                <img src="${opts.logoUrl}" alt="ACTEA" height="40" style="height:40px;display:block;" />
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align:middle;">
+                      <img src="${opts.logoUrl}" alt="ACTEA" height="40" style="height:40px;display:block;" />
+                    </td>
+                    <td style="vertical-align:middle;padding-left:12px;">
+                      <span style="font-size:20px;font-weight:700;color:${BRAND.blue};font-family:Arial,sans-serif;letter-spacing:0.5px;">ACTEA</span>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
