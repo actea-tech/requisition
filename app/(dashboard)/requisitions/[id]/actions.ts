@@ -18,6 +18,7 @@ const EDITABLE_FIELDS = [
   "amount",
   "currency",
   "payment_mode",
+  "payment_mode_details",
   "budget_line",
   "account_code",
   "project_fund_class_code",
