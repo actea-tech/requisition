@@ -78,6 +78,8 @@ export async function recordDecisionAction(
   requisitionId: string,
   decision: ApprovalDecision,
   comments: string | null,
+  returnTo: "requester" | "previous_stage" = "requester",
+  requiresReapproval: boolean = true,
 ) {
   const profile = await requireProfile();
   const supabase = await createClient();
@@ -86,6 +88,8 @@ export async function recordDecisionAction(
     p_actor_id: profile.id,
     p_decision: decision,
     p_comments: comments,
+    p_return_to: returnTo,
+    p_requires_reapproval: requiresReapproval,
   });
   revalidatePath(`/requisitions/${requisitionId}`);
   return { error: error?.message ?? null };
