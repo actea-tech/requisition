@@ -19,9 +19,29 @@ export default function InviteAcceptPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
+
+    async function establishSession() {
+      // @supabase/ssr's browser client uses the PKCE flow, so the invite
+      // link lands here as `?code=...` — it does NOT auto-populate a
+      // session the way the old implicit (#access_token=...) flow did.
+      // Without this exchange, getSession() always came back empty and
+      // the page had no way to let the user set a password.
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        window.history.replaceState({}, "", url.pathname);
+        if (exchangeError) {
+          setStatus("no-session");
+          return;
+        }
+      }
+
+      const { data } = await supabase.auth.getSession();
       setStatus(data.session ? "ready" : "no-session");
-    });
+    }
+
+    establishSession();
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

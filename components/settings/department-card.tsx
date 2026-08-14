@@ -109,7 +109,11 @@ export function DepartmentCard({
           )}
 
           <div className="mt-3 flex gap-2">
-            <Select value={pickerValue} onValueChange={(value) => setPickerValue(value ?? "")}>
+            <Select
+              value={pickerValue}
+              onValueChange={(value) => setPickerValue(value ?? "")}
+              items={Object.fromEntries(availableCandidates.map((c) => [c.id, `${c.full_name} (${c.email})`]))}
+            >
               <SelectTrigger className="w-full max-w-xs">
                 <SelectValue placeholder="Add a department head…" />
               </SelectTrigger>
@@ -135,7 +139,16 @@ export function DepartmentCard({
             department needs a different rule.
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={mode} onValueChange={(v) => setMode(v as ApprovalMode | "default")}>
+            <Select
+              value={mode}
+              onValueChange={(v) => setMode(v as ApprovalMode | "default")}
+              items={{
+                default: "Use global default",
+                first_approver: "First approver decides",
+                all_approvers: "All heads must approve",
+                quorum: "Quorum of heads",
+              }}
+            >
               <SelectTrigger className="w-56">
                 <SelectValue />
               </SelectTrigger>

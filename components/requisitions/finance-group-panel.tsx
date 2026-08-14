@@ -57,7 +57,11 @@ export function FinanceGroupPanel({
         )}
 
         <div className="flex gap-2">
-          <Select value={picked} onValueChange={(v) => setPicked(v ?? "")}>
+          <Select
+            value={picked}
+            onValueChange={(v) => setPicked(v ?? "")}
+            items={Object.fromEntries(available.map((c) => [c.id, c.full_name]))}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Add another reviewer…" />
             </SelectTrigger>
