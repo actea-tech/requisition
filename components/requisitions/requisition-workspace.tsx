@@ -135,6 +135,14 @@ export function RequisitionWorkspace({
       if (permissions.canEditFinance) {
         await updateRequisitionFields(requisition.id, values);
       }
+      // Deciding on a requisition returned to a previous stage (not the
+      // requester): it's sitting at status='returned', which
+      // record_approval_action rejects outright — move it back into the
+      // active review status first so the decision applies directly,
+      // with no separate "Resubmit" step for the user.
+      if (requisition.status === "returned") {
+        await resubmitRequisitionAction(requisition.id);
+      }
       const result = await recordDecisionAction(
         requisition.id,
         decision,
