@@ -1,6 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/session";
@@ -125,42 +124,6 @@ export async function removeFinanceApprover(requisitionId: string, userId: strin
   const supabase = await createClient();
   await supabase.from("finance_approver_group").delete().eq("requisition_id", requisitionId).eq("user_id", userId);
   revalidatePath(`/requisitions/${requisitionId}`);
-}
-
-export async function uploadAttachment(requisitionId: string, section: string, formData: FormData) {
-  const profile = await requireProfile();
-  const supabase = await createClient();
-
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) {
-    return { error: "Choose a file first." };
-  }
-
-  const storagePath = `${requisitionId}/${randomUUID()}-${file.name}`;
-  const { error: uploadError } = await supabase.storage
-    .from("requisition-attachments")
-    .upload(storagePath, file, { contentType: file.type || undefined });
-
-  if (uploadError) {
-    return { error: uploadError.message };
-  }
-
-  const { error: insertError } = await supabase.from("requisition_attachments").insert({
-    requisition_id: requisitionId,
-    uploaded_by: profile.id,
-    storage_path: storagePath,
-    file_name: file.name,
-    file_size: file.size,
-    section: section as Database["public"]["Tables"]["requisition_attachments"]["Row"]["section"],
-  });
-
-  if (insertError) {
-    await supabase.storage.from("requisition-attachments").remove([storagePath]);
-    return { error: insertError.message };
-  }
-
-  revalidatePath(`/requisitions/${requisitionId}`);
-  return { error: null };
 }
 
 export async function deleteAttachment(attachmentId: string, storagePath: string, requisitionId: string) {
