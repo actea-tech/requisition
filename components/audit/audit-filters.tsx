@@ -18,8 +18,23 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
     router.push(`/audit?${params.toString()}`);
   }
 
+  // Drafts never appear in the audit trail, so don't offer it as a filter.
+  const statusSteps = STATUS_STEPS.filter((s) => s.status !== "draft");
+
   return (
     <div className="flex flex-wrap items-end gap-3">
+      <div className="space-y-1.5">
+        <Label htmlFor="q">Requisition #</Label>
+        <Input
+          id="q"
+          className="w-40"
+          placeholder="REQ-2026-…"
+          defaultValue={searchParams.get("q") ?? ""}
+          onBlur={(e) => update("q", e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && update("q", e.currentTarget.value)}
+        />
+      </div>
+
       <div className="space-y-1.5">
         <Label>Status</Label>
         <Select
@@ -27,7 +42,7 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
           onValueChange={(v) => update("status", v === "all" ? "" : (v ?? ""))}
           items={{
             all: "All statuses",
-            ...Object.fromEntries(STATUS_STEPS.map((s) => [s.status, s.label])),
+            ...Object.fromEntries(statusSteps.map((s) => [s.status, s.label])),
             returned: "Returned",
             rejected: "Rejected",
           }}
@@ -37,7 +52,7 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            {STATUS_STEPS.map((s) => (
+            {statusSteps.map((s) => (
               <SelectItem key={s.status} value={s.status}>
                 {s.label}
               </SelectItem>

@@ -32,7 +32,7 @@ export interface SectionSpec {
 
 export interface RequisitionRowForForm {
   id: string;
-  requisition_number: string;
+  requisition_number: string | null;
   status: RequisitionStatus;
   returned_from_stage: RequisitionStatus | null;
   return_reason: string | null;
@@ -152,7 +152,7 @@ export function RequisitionWorkspace({
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-semibold">{requisition.requisition_number}</h1>
+            <h1 className="text-2xl font-semibold">{requisition.requisition_number ?? "Draft requisition"}</h1>
             <p className="text-sm text-muted-foreground">
               {requisition.requesterName} &middot; {requisition.departmentName}
             </p>
