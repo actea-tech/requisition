@@ -20,7 +20,11 @@ export async function inviteUser(_prevState: { error: string | null }, formData:
   }
 
   const supabaseAdmin = createAdminClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  // Read from app_settings (same source the send-email function uses) —
+  // not process.env.NEXT_PUBLIC_APP_URL, which drifts from the deployed
+  // domain and was the cause of emails linking to localhost.
+  const { data: appUrlSetting } = await supabaseAdmin.from("app_settings").select("value").eq("key", "app_url").single();
+  const appUrl = appUrlSetting?.value ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const tempPassword = randomBytes(9).toString("base64url");
 
   const { error } = await supabaseAdmin.auth.admin.createUser({
