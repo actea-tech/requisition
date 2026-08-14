@@ -22,12 +22,12 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
   const statusSteps = STATUS_STEPS.filter((s) => s.status !== "draft");
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       <div className="space-y-1.5">
         <Label htmlFor="q">Requisition #</Label>
         <Input
           id="q"
-          className="w-40"
+          className="w-full"
           placeholder="REQ-2026-…"
           defaultValue={searchParams.get("q") ?? ""}
           onBlur={(e) => update("q", e.target.value)}
@@ -47,7 +47,7 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
             rejected: "Rejected",
           }}
         >
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -70,7 +70,7 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
           onValueChange={(v) => update("department", v === "all" ? "" : (v ?? ""))}
           items={{ all: "All departments", ...Object.fromEntries(departments.map((d) => [d.id, d.name])) }}
         >
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -89,7 +89,7 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
         <Input
           id="from"
           type="date"
-          className="w-40"
+          className="w-full"
           defaultValue={searchParams.get("from") ?? ""}
           onChange={(e) => update("from", e.target.value)}
         />
@@ -100,15 +100,18 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
         <Input
           id="to"
           type="date"
-          className="w-40"
+          className="w-full"
           defaultValue={searchParams.get("to") ?? ""}
           onChange={(e) => update("to", e.target.value)}
         />
       </div>
 
-      <Button variant="ghost" onClick={() => router.push("/audit")}>
-        Clear
-      </Button>
+      <div className="space-y-1.5">
+        <Label className="invisible select-none">Clear</Label>
+        <Button variant="outline" className="w-full" onClick={() => router.push("/audit")}>
+          Clear
+        </Button>
+      </div>
     </div>
   );
 }
