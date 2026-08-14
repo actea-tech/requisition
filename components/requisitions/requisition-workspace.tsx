@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DynamicField, type FieldMeta } from "@/components/requisitions/dynamic-field";
 import { StatusStepper } from "@/components/requisitions/status-stepper";
 import { StatusBadge } from "@/components/requisitions/status-badge";
@@ -52,6 +54,7 @@ export function RequisitionWorkspace({
   permissions,
   financeGroup,
   financeCandidates,
+  previousStageLabel,
 }: {
   requisition: RequisitionRowForForm;
   sections: SectionSpec[];
@@ -67,8 +70,11 @@ export function RequisitionWorkspace({
   };
   financeGroup: { id: string; full_name: string }[];
   financeCandidates: { id: string; full_name: string }[];
+  previousStageLabel: string | null;
 }) {
   const router = useRouter();
+  const [returnTo, setReturnTo] = useState<"requester" | "previous_stage">("requester");
+  const [requiresReapproval, setRequiresReapproval] = useState(true);
   const [values, setValues] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
     for (const section of sections) {
@@ -129,7 +135,13 @@ export function RequisitionWorkspace({
       if (permissions.canEditFinance) {
         await updateRequisitionFields(requisition.id, values);
       }
-      const result = await recordDecisionAction(requisition.id, decision, comment.trim() || null);
+      const result = await recordDecisionAction(
+        requisition.id,
+        decision,
+        comment.trim() || null,
+        decision === "returned" ? returnTo : "requester",
+        decision === "returned" ? requiresReapproval : true,
+      );
       if (result.error) toast.error(result.error);
       else {
         toast.success("Decision recorded");
@@ -287,6 +299,35 @@ export function RequisitionWorkspace({
                 <Button className="w-full" disabled={isPending} onClick={() => handleDecision("approved")}>
                   Approve
                 </Button>
+
+                {previousStageLabel ? (
+                  <div className="space-y-2 rounded-md border p-2.5">
+                    <Label className="text-xs">If returned, send to</Label>
+                    <Select
+                      value={returnTo}
+                      onValueChange={(v) => setReturnTo((v ?? "requester") as typeof returnTo)}
+                      items={{ requester: "Requester", previous_stage: previousStageLabel }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="requester">Requester</SelectItem>
+                        <SelectItem value="previous_stage">{previousStageLabel}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {returnTo === "requester" ? (
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Checkbox
+                          checked={requiresReapproval}
+                          onCheckedChange={(c) => setRequiresReapproval(c === true)}
+                        />
+                        Requires re-approval from earlier stages
+                      </label>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <Button
                   className="w-full"
                   variant="outline"

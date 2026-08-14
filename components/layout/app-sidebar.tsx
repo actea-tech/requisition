@@ -43,7 +43,13 @@ export function AppSidebar({
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <Image src="/actea-logo.png" alt="ACTEA" width={28} height={28} className="h-7 w-7 shrink-0" />
+          <Image
+            src="/actea-logo.png"
+            alt="ACTEA"
+            width={28}
+            height={28}
+            className="h-7 w-7 shrink-0 group-data-[collapsible=icon]:hidden"
+          />
           <span className="truncate text-sm font-semibold group-data-[collapsible=icon]:hidden">
             ACTEA Requisitions
           </span>

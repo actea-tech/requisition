@@ -37,7 +37,6 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     supabase
       .from("form_field_config")
       .select("section, field_key, label, help_text, is_required, is_visible")
-      .eq("is_visible", true)
       .order("sort_order"),
     supabase
       .from("requisition_attachments")
@@ -58,8 +57,6 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
 
   const isOwner = requisition.requester_id === profile.id;
   const isAdmin = profile.role === "admin";
-  const isDraftOrReturned = requisition.status === "draft" || requisition.status === "returned";
-  const canEditDraftFields = isOwner && isDraftOrReturned;
 
   const stageKey = stageKeyForStatus(requisition.status);
   let isEligibleApprover = false;
@@ -75,13 +72,32 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const canEditFinance = stageKey === "finance" && isEligibleApprover;
   const canEditFinalProcessing =
     stageKey === "payment" && (isAdmin || requisition.finance_accountant_id === profile.id);
+
+  // A "return to previous stage" targets that stage's approver(s) — they
+  // need to edit + resubmit the same way the requester normally would.
+  let canEditReturned = false;
+  if (requisition.status === "returned") {
+    if (requisition.return_to !== "previous_stage") {
+      canEditReturned = isOwner;
+    } else if (requisition.returned_from_stage === "dept_review") {
+      const { data: deptEligible } = await supabase.rpc("get_eligible_approver_ids", {
+        p_requisition_id: id,
+        p_stage_key: "department",
+      });
+      canEditReturned = isAdmin || Boolean(deptEligible?.includes(profile.id));
+    } else if (requisition.returned_from_stage === "finance_review") {
+      canEditReturned = isAdmin || profile.role === "finance_accountant" || profile.role === "finance_reviewer";
+    }
+  }
+  const canEditDraftFields = (isOwner && requisition.status === "draft") || canEditReturned;
   const canUploadAttachments = canEditDraftFields || canEditFinance || isAdmin;
 
-  // A requester with no other standing on this requisition (not an
-  // approver/finance/director/admin for it right now) only ever sees
-  // Request Details, Payment Details, attachments, and the audit trail —
-  // Budget/Compliance/Finance Review/Final Processing are Finance's and
-  // the Director's to fill and see.
+  const previousStageLabel = stageKey === "finance" ? "Department Head" : stageKey === "director" ? "Finance" : null;
+
+  // Field/section visibility toggles (Settings > Form Fields) are a
+  // requester-facing convenience only — from department head upward,
+  // everyone sees every field (still not editable unless it's their turn),
+  // per the current requirements.
   const restrictToRequesterView = isOwner && !canDecide && !canEditFinance && !canEditFinalProcessing && !isAdmin;
   const REQUESTER_VISIBLE_SECTIONS = new Set<FormSection>(["request_details", "payment_details"]);
 
@@ -99,7 +115,12 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
             ? canEditFinance
             : canEditFinalProcessing,
     fields: (fieldConfig ?? [])
-      .filter((f) => f.section === key && f.field_key !== "supporting_documents")
+      .filter(
+        (f) =>
+          f.section === key &&
+          f.field_key !== "supporting_documents" &&
+          (!restrictToRequesterView || f.is_visible),
+      )
       .map((f) => ({
         field_key: f.field_key,
         label: f.label,
@@ -156,6 +177,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       }}
       financeGroup={financeGroup}
       financeCandidates={financeCandidates}
+      previousStageLabel={previousStageLabel}
     />
   );
 }

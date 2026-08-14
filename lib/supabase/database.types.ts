@@ -146,6 +146,8 @@ export interface Database {
           payment_status: "pending" | "approved_for_payment" | "paid" | "posted_in_qbo" | "returned";
           returned_from_stage: RequisitionStatus | null;
           return_reason: string | null;
+          return_to: "requester" | "previous_stage";
+          requires_reapproval: boolean;
           stage_entered_at: string;
           submitted_at: string | null;
           created_at: string;
@@ -276,7 +278,14 @@ export interface Database {
       submit_requisition: { Args: { p_requisition_id: string; p_actor_id: string }; Returns: void };
       resubmit_requisition: { Args: { p_requisition_id: string; p_actor_id: string }; Returns: void };
       record_approval_action: {
-        Args: { p_requisition_id: string; p_actor_id: string; p_decision: ApprovalDecision; p_comments?: string | null };
+        Args: {
+          p_requisition_id: string;
+          p_actor_id: string;
+          p_decision: ApprovalDecision;
+          p_comments?: string | null;
+          p_return_to?: "requester" | "previous_stage";
+          p_requires_reapproval?: boolean;
+        };
         Returns: void;
       };
       complete_payment_processing: {
