@@ -126,6 +126,7 @@ export interface Database {
           amount: number | null;
           currency: string;
           payment_mode: string | null;
+          payment_mode_details: string | null;
           budget_line: string | null;
           account_code: string | null;
           project_fund_class_code: string | null;
@@ -182,6 +183,7 @@ export interface Database {
           amount: number | null;
           currency: string;
           payment_mode: string | null;
+          payment_mode_details: string | null;
           budget_line: string | null;
           account_code: string | null;
           project_fund_class_code: string | null;

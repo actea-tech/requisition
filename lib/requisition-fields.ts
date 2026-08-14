@@ -14,7 +14,7 @@ const YES_NO_UNSURE = [...YES_NO, { value: "not_sure", label: "Not sure" }];
 
 const CURRENCIES = ["KES", "USD", "EUR", "GBP", "UGX", "TZS"].map((c) => ({ value: c, label: c }));
 
-const PAYMENT_MODES = ["Bank transfer", "M-Pesa", "Cheque", "Petty cash", "Other"].map((v) => ({
+const PAYMENT_MODES = ["Bank transfer", "M-Pesa", "Cash", "Cheque", "Petty cash", "Other"].map((v) => ({
   value: v,
   label: v,
 }));
@@ -35,6 +35,7 @@ export const FIELD_SPECS: Record<string, FieldSpec> = {
   amount: { type: "number" },
   currency: { type: "select", options: CURRENCIES },
   payment_mode: { type: "select", options: PAYMENT_MODES },
+  payment_mode_details: { type: "textarea" },
   budget_line: { type: "text" },
   account_code: { type: "text" },
   project_fund_class_code: { type: "text" },
