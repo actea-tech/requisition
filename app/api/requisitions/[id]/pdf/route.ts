@@ -1,7 +1,21 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { RequisitionPdfDocument, type RequisitionPdfData } from "@/lib/pdf/requisition-document";
+
+// Embedded as a data URI rather than fetched by URL — react-pdf's Node
+// renderer runs server-side with no need for a network round trip, and this
+// avoids depending on NEXT_PUBLIC_APP_URL being reachable from the server.
+function loadLogoDataUri(): string | null {
+  try {
+    const bytes = readFileSync(path.join(process.cwd(), "public", "actea-logo.png"));
+    return `data:image/png;base64,${bytes.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -62,6 +76,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       actorName: nameFor(h.actor_id),
     })),
     generatedAt: new Date().toISOString(),
+    logoSrc: loadLogoDataUri(),
   };
 
   const buffer = await renderToBuffer(RequisitionPdfDocument({ data }));
