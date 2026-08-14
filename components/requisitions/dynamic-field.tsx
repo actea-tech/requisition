@@ -37,7 +37,12 @@ export function DynamicField({
       {spec.type === "textarea" ? (
         <Textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} rows={3} />
       ) : spec.type === "select" ? (
-        <Select value={value || undefined} onValueChange={(v) => onChange(v ?? "")} disabled={disabled}>
+        <Select
+          value={value || undefined}
+          onValueChange={(v) => onChange(v ?? "")}
+          disabled={disabled}
+          items={Object.fromEntries((spec.options ?? []).map((o) => [o.value, o.label]))}
+        >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select…" />
           </SelectTrigger>

@@ -54,6 +54,7 @@ export function UsersTable({
                   });
                 }}
                 disabled={isPending}
+                items={Object.fromEntries(ROLE_OPTIONS.map((o) => [o.value, o.label]))}
               >
                 <SelectTrigger className="w-44">
                   <SelectValue />
@@ -76,6 +77,7 @@ export function UsersTable({
                   });
                 }}
                 disabled={isPending}
+                items={{ none: "No department", ...Object.fromEntries(departments.map((d) => [d.id, d.name])) }}
               >
                 <SelectTrigger className="w-44">
                   <SelectValue />

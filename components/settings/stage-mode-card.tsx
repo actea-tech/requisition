@@ -41,7 +41,15 @@ export function StageModeCard({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap items-center gap-2">
-        <Select value={mode} onValueChange={(v) => setMode(v as ApprovalMode)}>
+        <Select
+          value={mode}
+          onValueChange={(v) => setMode(v as ApprovalMode)}
+          items={{
+            first_approver: "First approver decides",
+            all_approvers: "All eligible approvers must approve",
+            quorum: "Quorum of approvers",
+          }}
+        >
           <SelectTrigger className="w-56">
             <SelectValue />
           </SelectTrigger>

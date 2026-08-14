@@ -77,14 +77,24 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     stageKey === "payment" && (isAdmin || requisition.finance_accountant_id === profile.id);
   const canUploadAttachments = canEditDraftFields || canEditFinance || isAdmin;
 
-  const sections: SectionSpec[] = SECTION_DEFS.map(({ key, label }) => ({
+  // A requester with no other standing on this requisition (not an
+  // approver/finance/director/admin for it right now) only ever sees
+  // Request Details, Payment Details, attachments, and the audit trail —
+  // Budget/Compliance/Finance Review/Final Processing are Finance's and
+  // the Director's to fill and see.
+  const restrictToRequesterView = isOwner && !canDecide && !canEditFinance && !canEditFinalProcessing && !isAdmin;
+  const REQUESTER_VISIBLE_SECTIONS = new Set<FormSection>(["request_details", "payment_details"]);
+
+  const sections: SectionSpec[] = SECTION_DEFS.filter(
+    ({ key }) => !restrictToRequesterView || REQUESTER_VISIBLE_SECTIONS.has(key),
+  ).map(({ key, label }) => ({
     key,
     label,
     editable:
       key === "request_details" || key === "payment_details"
         ? canEditDraftFields
         : key === "budget_and_coding" || key === "compliance_and_support"
-          ? canEditDraftFields || canEditFinance
+          ? canEditFinance
           : key === "finance_review"
             ? canEditFinance
             : canEditFinalProcessing,

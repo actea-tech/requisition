@@ -22,7 +22,16 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
     <div className="flex flex-wrap items-end gap-3">
       <div className="space-y-1.5">
         <Label>Status</Label>
-        <Select value={searchParams.get("status") ?? "all"} onValueChange={(v) => update("status", v === "all" ? "" : (v ?? ""))}>
+        <Select
+          value={searchParams.get("status") ?? "all"}
+          onValueChange={(v) => update("status", v === "all" ? "" : (v ?? ""))}
+          items={{
+            all: "All statuses",
+            ...Object.fromEntries(STATUS_STEPS.map((s) => [s.status, s.label])),
+            returned: "Returned",
+            rejected: "Rejected",
+          }}
+        >
           <SelectTrigger className="w-48">
             <SelectValue />
           </SelectTrigger>
@@ -44,6 +53,7 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
         <Select
           value={searchParams.get("department") ?? "all"}
           onValueChange={(v) => update("department", v === "all" ? "" : (v ?? ""))}
+          items={{ all: "All departments", ...Object.fromEntries(departments.map((d) => [d.id, d.name])) }}
         >
           <SelectTrigger className="w-48">
             <SelectValue />

@@ -62,7 +62,11 @@ export function InviteUserDialog({ departments }: { departments: { id: string; n
             </div>
             <div className="space-y-1.5">
               <Label>Role</Label>
-              <Select value={role} onValueChange={(value) => setRole(value ?? "staff")}>
+              <Select
+                value={role}
+                onValueChange={(value) => setRole(value ?? "staff")}
+                items={Object.fromEntries(ROLE_OPTIONS.map((o) => [o.value, o.label]))}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -78,7 +82,11 @@ export function InviteUserDialog({ departments }: { departments: { id: string; n
             </div>
             <div className="space-y-1.5">
               <Label>Department</Label>
-              <Select value={departmentId} onValueChange={(value) => setDepartmentId(value ?? "")}>
+              <Select
+                value={departmentId}
+                onValueChange={(value) => setDepartmentId(value ?? "")}
+                items={Object.fromEntries(departments.map((d) => [d.id, d.name]))}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="No department" />
                 </SelectTrigger>
