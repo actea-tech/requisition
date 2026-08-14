@@ -71,7 +71,7 @@ export function wrapEmailHtml(opts: { title: string; bodyHtml: string; logoUrl: 
             </tr>
             <tr>
               <td style="padding:20px 32px;border-top:1px solid ${BRAND.border};font-size:12px;color:${BRAND.muted};">
-                ACTEA Requisitions &middot; <a href="${opts.appUrl}" style="color:${BRAND.muted};">${opts.appUrl.replace(/^https?:\/\//, "")}</a>
+                <a href="${opts.appUrl}/login" style="color:${BRAND.muted};text-decoration:underline;">ACTEA Requisitions</a>
               </td>
             </tr>
           </table>
