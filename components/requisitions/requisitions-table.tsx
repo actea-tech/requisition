@@ -35,34 +35,24 @@ export function RequisitionsTable({ rows }: { rows: RequisitionListRow[] }) {
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
-            <TableRow key={row.id} className="cursor-pointer">
+            <TableRow key={row.id} className="relative cursor-pointer transition-colors hover:bg-muted/50">
               <TableCell>
-                <Link href={`/requisitions/${row.id}`} className="block">
-                  <div className="font-medium">{row.requisition_number ?? "Draft"}</div>
-                  {row.purpose ? (
-                    <div className="max-w-xs truncate text-xs text-muted-foreground">{row.purpose}</div>
-                  ) : null}
-                </Link>
+                {/* Stretched link: covers the whole row (position:relative
+                    on TableRow), so clicking anywhere in the row navigates,
+                    not just this cell's text. */}
+                <Link href={`/requisitions/${row.id}`} className="absolute inset-0" aria-label={row.requisition_number ?? "Draft"} />
+                <div className="font-medium">{row.requisition_number ?? "Draft"}</div>
+                {row.purpose ? (
+                  <div className="max-w-xs truncate text-xs text-muted-foreground">{row.purpose}</div>
+                ) : null}
               </TableCell>
+              <TableCell>{row.requesterName}</TableCell>
+              <TableCell>{row.departmentName}</TableCell>
+              <TableCell>{row.amount ? `${row.currency} ${row.amount.toLocaleString()}` : "—"}</TableCell>
               <TableCell>
-                <Link href={`/requisitions/${row.id}`}>{row.requesterName}</Link>
+                <StatusBadge status={row.status} />
               </TableCell>
-              <TableCell>
-                <Link href={`/requisitions/${row.id}`}>{row.departmentName}</Link>
-              </TableCell>
-              <TableCell>
-                <Link href={`/requisitions/${row.id}`}>
-                  {row.amount ? `${row.currency} ${row.amount.toLocaleString()}` : "—"}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Link href={`/requisitions/${row.id}`}>
-                  <StatusBadge status={row.status} />
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Link href={`/requisitions/${row.id}`}>{new Date(row.created_at).toLocaleDateString()}</Link>
-              </TableCell>
+              <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
             </TableRow>
           ))}
         </TableBody>

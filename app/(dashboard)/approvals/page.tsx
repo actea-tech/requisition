@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/session";
 import { RequisitionsTable } from "@/components/requisitions/requisitions-table";
-
-const IN_PROGRESS_STATUSES = ["dept_review", "finance_review", "director_review", "approved_for_payment"] as const;
+import { PENDING_APPROVAL_OR_FILTER } from "@/lib/requisition-status";
 
 // Deliberately doesn't pre-filter statuses by profile.role — RLS is the
 // actual authority on what each viewer can see (department_heads
@@ -17,7 +16,7 @@ export default async function ApprovalsPage() {
     supabase
       .from("requisitions")
       .select("id, requisition_number, status, purpose, amount, currency, created_at, requester_id, department_id")
-      .in("status", IN_PROGRESS_STATUSES)
+      .or(PENDING_APPROVAL_OR_FILTER)
       .neq("requester_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase.from("departments").select("id, name"),

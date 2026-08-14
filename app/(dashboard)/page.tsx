@@ -3,8 +3,7 @@ import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/comp
 import { Button } from "@/components/ui/button";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-
-const IN_PROGRESS_STATUSES = ["dept_review", "finance_review", "director_review", "approved_for_payment"] as const;
+import { PENDING_APPROVAL_OR_FILTER } from "@/lib/requisition-status";
 
 export default async function DashboardHome() {
   const profile = await requireProfile();
@@ -15,7 +14,7 @@ export default async function DashboardHome() {
     supabase
       .from("requisitions")
       .select("id", { count: "exact", head: true })
-      .in("status", IN_PROGRESS_STATUSES)
+      .or(PENDING_APPROVAL_OR_FILTER)
       .neq("requester_id", profile.id),
   ]);
 
