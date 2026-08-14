@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/requisitions/status-badge";
+import { Button } from "@/components/ui/button";
 import type { RequisitionStatus } from "@/lib/supabase/database.types";
 
 export interface RequisitionListRow {
@@ -31,6 +33,7 @@ export function RequisitionsTable({ rows }: { rows: RequisitionListRow[] }) {
             <TableHead>Amount</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Date</TableHead>
+            <TableHead className="w-10" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -53,6 +56,20 @@ export function RequisitionsTable({ rows }: { rows: RequisitionListRow[] }) {
                 <StatusBadge status={row.status} />
               </TableCell>
               <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
+              <TableCell>
+                {row.status === "paid_posted" ? (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="relative z-10"
+                    title="Download PDF"
+                    render={<a href={`/api/requisitions/${row.id}/pdf`} aria-label="Download PDF" />}
+                    nativeButton={false}
+                  >
+                    <Download className="size-4" />
+                  </Button>
+                ) : null}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
