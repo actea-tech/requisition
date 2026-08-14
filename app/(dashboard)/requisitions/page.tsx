@@ -32,7 +32,7 @@ export default async function MyRequisitionsPage() {
           <h1 className="text-2xl font-semibold">My Requisitions</h1>
           <p className="text-sm text-muted-foreground">Everything you&apos;ve submitted.</p>
         </div>
-        <Button render={<Link href="/requisitions/new" />}>New requisition</Button>
+        <Button nativeButton={false} render={<Link href="/requisitions/new" />}>New requisition</Button>
       </div>
 
       <RequisitionsTable rows={rows} />
