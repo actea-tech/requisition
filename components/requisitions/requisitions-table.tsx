@@ -5,7 +5,7 @@ import type { RequisitionStatus } from "@/lib/supabase/database.types";
 
 export interface RequisitionListRow {
   id: string;
-  requisition_number: string;
+  requisition_number: string | null;
   status: RequisitionStatus;
   purpose: string | null;
   amount: number | null;
@@ -38,7 +38,7 @@ export function RequisitionsTable({ rows }: { rows: RequisitionListRow[] }) {
             <TableRow key={row.id} className="cursor-pointer">
               <TableCell>
                 <Link href={`/requisitions/${row.id}`} className="block">
-                  <div className="font-medium">{row.requisition_number}</div>
+                  <div className="font-medium">{row.requisition_number ?? "Draft"}</div>
                   {row.purpose ? (
                     <div className="max-w-xs truncate text-xs text-muted-foreground">{row.purpose}</div>
                   ) : null}

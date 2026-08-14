@@ -6,6 +6,7 @@ export interface AuditFilters {
   departmentId?: string;
   fromDate?: string;
   toDate?: string;
+  requisitionNumber?: string;
 }
 
 export function parseAuditFilters(searchParams: Record<string, string | string[] | undefined>): AuditFilters {
@@ -19,6 +20,7 @@ export function parseAuditFilters(searchParams: Record<string, string | string[]
     departmentId: get("department") || undefined,
     fromDate: get("from") || undefined,
     toDate: get("to") || undefined,
+    requisitionNumber: get("q") || undefined,
   };
 }
 
@@ -51,12 +53,14 @@ export async function queryAuditRows(supabase: SupabaseClient<Database>, filters
     .select(
       "id, requisition_number, created_at, submitted_at, status, requester_id, department_id, purpose, payee_name, amount, currency, payment_mode, budget_line, account_code, project_fund_class_code, donor_grant_source, donor_restriction, budget_available, payment_voucher_number, qbo_posting_reference, payment_status",
     )
+    .neq("status", "draft")
     .order("created_at", { ascending: false });
 
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.departmentId) query = query.eq("department_id", filters.departmentId);
   if (filters.fromDate) query = query.gte("created_at", filters.fromDate);
   if (filters.toDate) query = query.lte("created_at", `${filters.toDate}T23:59:59`);
+  if (filters.requisitionNumber) query = query.ilike("requisition_number", `%${filters.requisitionNumber}%`);
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);

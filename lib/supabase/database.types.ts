@@ -115,7 +115,7 @@ export interface Database {
       requisitions: {
         Row: {
           id: string;
-          requisition_number: string;
+          requisition_number: string | null;
           requester_id: string;
           department_id: string;
           status: RequisitionStatus;
