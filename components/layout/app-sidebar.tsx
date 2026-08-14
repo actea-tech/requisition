@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ChevronsUpDown, LogOut, User } from "lucide-react";
+import { signOut } from "@/app/login/actions";
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +16,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { NavIcon } from "@/components/layout/icons";
 import type { NavItem } from "@/lib/nav";
 import { ROLE_LABELS } from "@/lib/roles";
@@ -44,12 +53,17 @@ export function AppSidebar({
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1.5">
               {items.map((item) => {
                 const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton render={<Link href={item.href} />} isActive={isActive} tooltip={item.label}>
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={isActive}
+                      tooltip={item.label}
+                      size="lg"
+                    >
                       <NavIcon icon={item.icon} />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
@@ -62,10 +76,36 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex flex-col gap-0.5 px-2 py-1.5 group-data-[collapsible=icon]:hidden">
-          <span className="truncate text-sm font-medium">{fullName}</span>
-          <span className="text-xs text-muted-foreground">{ROLE_LABELS[role]}</span>
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<SidebarMenuButton size="lg" />}
+                className="data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground"
+              >
+                <User className="size-4" />
+                <div className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
+                  <span className="truncate text-sm font-medium">{fullName}</span>
+                  <span className="truncate text-xs text-muted-foreground">{ROLE_LABELS[role]}</span>
+                </div>
+                <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="w-56">
+                <DropdownMenuItem render={<Link href="/profile" />}>
+                  <User className="size-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <form action={signOut}>
+                  <button type="submit" className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
+                    <LogOut className="size-4" />
+                    Sign out
+                  </button>
+                </form>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

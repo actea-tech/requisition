@@ -1,14 +1,12 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Paperclip, Trash2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  deleteAttachment,
-  getAttachmentSignedUrl,
-  uploadAttachment,
-} from "@/app/(dashboard)/requisitions/[id]/actions";
+import { Progress } from "@/components/ui/progress";
+import { deleteAttachment, getAttachmentSignedUrl } from "@/app/(dashboard)/requisitions/[id]/actions";
 
 export interface AttachmentRow {
   id: string;
@@ -35,23 +33,51 @@ export function AttachmentsPanel({
   canUpload: boolean;
   canDelete: boolean;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [uploadingName, setUploadingName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setError(null);
+    setProgress(0);
+    setUploadingName(file.name);
+
     const formData = new FormData();
     formData.set("file", file);
-    setError(null);
+    formData.set("requisitionId", requisitionId);
+    formData.set("section", "compliance_and_support");
 
-    startTransition(async () => {
-      const result = await uploadAttachment(requisitionId, "compliance_and_support", formData);
-      if (result.error) setError(result.error);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/attachments");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      setProgress(null);
+      setUploadingName(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-    });
+      if (xhr.status >= 200 && xhr.status < 300) {
+        router.refresh();
+      } else {
+        try {
+          setError(JSON.parse(xhr.responseText).error ?? "Upload failed.");
+        } catch {
+          setError("Upload failed.");
+        }
+      }
+    };
+    xhr.onerror = () => {
+      setProgress(null);
+      setUploadingName(null);
+      setError("Upload failed — check your connection.");
+    };
+    xhr.send(formData);
   }
 
   async function handleView(path: string) {
@@ -103,13 +129,20 @@ export function AttachmentsPanel({
 
         {canUpload ? (
           <div className="print:hidden">
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={handleFileChange}
-              disabled={isPending}
-              className="text-sm file:mr-3 file:rounded-md file:border file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium"
-            />
+            {progress !== null ? (
+              <div className="space-y-1.5">
+                <p className="truncate text-xs text-muted-foreground">Uploading {uploadingName}… {progress}%</p>
+                <Progress value={progress} />
+              </div>
+            ) : (
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileChange}
+                disabled={isPending}
+                className="text-sm file:mr-3 file:rounded-md file:border file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium"
+              />
+            )}
             {error ? <p className="mt-1 text-sm text-destructive">{error}</p> : null}
           </div>
         ) : null}

@@ -14,9 +14,12 @@ export function navItemsForRole(role: UserRole): NavItem[] {
     { href: "/requisitions", label: "My Requisitions", icon: "list" },
   ];
 
-  if (role !== "staff") {
-    items.push({ href: "/approvals", label: "Pending My Approval", icon: "check" });
-  }
+  // Shown to everyone, not just non-"staff" roles: a department head's
+  // actual eligibility comes from department_heads membership (see
+  // migration 0015), which can be true even when the role label wasn't
+  // updated to "dept_head". Worst case for a plain staff member is an
+  // empty list.
+  items.push({ href: "/approvals", label: "Pending My Approval", icon: "check" });
 
   if (canViewAudit(role)) {
     items.push({ href: "/audit", label: "Audit Trail", icon: "audit" });

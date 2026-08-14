@@ -2,9 +2,22 @@ import Link from "next/link";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { requireProfile } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
+
+const IN_PROGRESS_STATUSES = ["dept_review", "finance_review", "director_review", "approved_for_payment"] as const;
 
 export default async function DashboardHome() {
   const profile = await requireProfile();
+  const supabase = await createClient();
+
+  const [{ count: myCount }, { count: pendingCount }] = await Promise.all([
+    supabase.from("requisitions").select("id", { count: "exact", head: true }).eq("requester_id", profile.id),
+    supabase
+      .from("requisitions")
+      .select("id", { count: "exact", head: true })
+      .in("status", IN_PROGRESS_STATUSES)
+      .neq("requester_id", profile.id),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -21,7 +34,7 @@ export default async function DashboardHome() {
             <CardTitle>Start a new requisition</CardTitle>
             <CardDescription>Submit a purchase or payment request for approval.</CardDescription>
             <CardAction>
-              <Button render={<Link href="/requisitions/new" />} size="sm">
+              <Button render={<Link href="/requisitions/new" />} nativeButton={false} size="sm">
                 New requisition
               </Button>
             </CardAction>
@@ -30,29 +43,31 @@ export default async function DashboardHome() {
 
         <Card>
           <CardHeader>
-            <CardTitle>My requisitions</CardTitle>
+            <CardTitle>
+              My requisitions <span className="text-muted-foreground">({myCount ?? 0})</span>
+            </CardTitle>
             <CardDescription>Everything you&apos;ve submitted, and its current status.</CardDescription>
             <CardAction>
-              <Button render={<Link href="/requisitions" />} size="sm" variant="outline">
+              <Button render={<Link href="/requisitions" />} nativeButton={false} size="sm" variant="outline">
                 View
               </Button>
             </CardAction>
           </CardHeader>
         </Card>
 
-        {profile.role !== "staff" ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending my approval</CardTitle>
-              <CardDescription>Requisitions waiting on your decision.</CardDescription>
-              <CardAction>
-                <Button render={<Link href="/approvals" />} size="sm" variant="outline">
-                  Review
-                </Button>
-              </CardAction>
-            </CardHeader>
-          </Card>
-        ) : null}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Pending my approval <span className="text-muted-foreground">({pendingCount ?? 0})</span>
+            </CardTitle>
+            <CardDescription>Requisitions waiting on your decision.</CardDescription>
+            <CardAction>
+              <Button render={<Link href="/approvals" />} nativeButton={false} size="sm" variant="outline">
+                Review
+              </Button>
+            </CardAction>
+          </CardHeader>
+        </Card>
       </div>
     </div>
   );

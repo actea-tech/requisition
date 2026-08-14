@@ -1,37 +1,24 @@
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/session";
 import { RequisitionsTable } from "@/components/requisitions/requisitions-table";
-import type { RequisitionStatus, UserRole } from "@/lib/supabase/database.types";
 
-function statusesForRole(role: UserRole): RequisitionStatus[] {
-  switch (role) {
-    case "dept_head":
-      return ["dept_review"];
-    case "finance_accountant":
-    case "finance_reviewer":
-      return ["finance_review", "approved_for_payment"];
-    case "director":
-      return ["director_review"];
-    case "admin":
-      return ["dept_review", "finance_review", "director_review", "approved_for_payment"];
-    default:
-      return [];
-  }
-}
+const IN_PROGRESS_STATUSES = ["dept_review", "finance_review", "director_review", "approved_for_payment"] as const;
 
+// Deliberately doesn't pre-filter statuses by profile.role — RLS is the
+// actual authority on what each viewer can see (department_heads
+// membership, finance role, director role, admin), and role can drift out
+// of sync with that (see migration 0015). Excludes the viewer's own
+// submissions since self-approval isn't possible anyway (0012).
 export default async function ApprovalsPage() {
   const profile = await requireProfile();
-  if (profile.role === "staff") redirect("/");
-
   const supabase = await createClient();
-  const statuses = statusesForRole(profile.role);
 
   const [{ data: requisitions }, { data: departments }, { data: requesterProfiles }] = await Promise.all([
     supabase
       .from("requisitions")
       .select("id, requisition_number, status, purpose, amount, currency, created_at, requester_id, department_id")
-      .in("status", statuses)
+      .in("status", IN_PROGRESS_STATUSES)
+      .neq("requester_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase.from("departments").select("id, name"),
     supabase.from("profiles").select("id, full_name"),
