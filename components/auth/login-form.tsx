@@ -1,18 +1,32 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { signIn } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function LoginForm({ next }: { next: string }) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(signIn, { error: null });
+  const submittedRef = useRef(false);
+
+  useEffect(() => {
+    if (submittedRef.current && !isPending && !state.error) {
+      router.push(next.startsWith("/") ? next : "/");
+      router.refresh();
+    }
+  }, [isPending, state.error, next, router]);
 
   return (
-    <form action={formAction} className="mt-8 space-y-4">
-      <input type="hidden" name="next" value={next} />
-
+    <form
+      action={(formData) => {
+        submittedRef.current = true;
+        formAction(formData);
+      }}
+      className="mt-8 space-y-4"
+    >
       <div className="space-y-1.5">
         <Label htmlFor="email">Email</Label>
         <Input id="email" name="email" type="email" placeholder="you@acteaweb.org" required autoFocus />

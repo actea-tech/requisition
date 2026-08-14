@@ -3,13 +3,17 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+// Deliberately does NOT call redirect() on success — doing so from inside
+// a useActionState action occasionally let the raw RSC response flash as
+// text if the click landed before hydration finished. The client now
+// navigates itself via router.push once it sees a successful, no-error
+// state (see login-form.tsx).
 export async function signIn(
   _prevState: { error: string | null },
   formData: FormData,
 ): Promise<{ error: string | null }> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/");
 
   if (!email || !password) {
     return { error: "Enter your email and password." };
@@ -22,7 +26,7 @@ export async function signIn(
     return { error: "Incorrect email or password." };
   }
 
-  redirect(next.startsWith("/") ? next : "/");
+  return { error: null };
 }
 
 export async function signOut() {

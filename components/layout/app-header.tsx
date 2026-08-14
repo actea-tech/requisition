@@ -1,4 +1,5 @@
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { LogOut, User } from "lucide-react";
 import { signOut } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -10,7 +11,11 @@ export function AppHeader({ fullName }: { fullName: string }) {
       <SidebarTrigger />
       <Separator orientation="vertical" className="h-5" />
       <p className="text-sm font-medium">Welcome, {fullName}</p>
-      <form action={signOut} className="ml-auto">
+      <Button variant="ghost" size="sm" className="ml-auto" nativeButton={false} render={<Link href="/profile" />}>
+        <User className="size-4" />
+        Profile
+      </Button>
+      <form action={signOut}>
         <Button type="submit" variant="ghost" size="sm">
           <LogOut className="size-4" />
           Sign out
