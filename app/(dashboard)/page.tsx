@@ -21,7 +21,7 @@ export default async function DashboardHome() {
             <CardTitle>Start a new requisition</CardTitle>
             <CardDescription>Submit a purchase or payment request for approval.</CardDescription>
             <CardAction>
-              <Button render={<Link href="/requisitions/new" />} size="sm">
+              <Button render={<Link href="/requisitions/new" />} nativeButton={false} size="sm">
                 New requisition
               </Button>
             </CardAction>
@@ -33,7 +33,7 @@ export default async function DashboardHome() {
             <CardTitle>My requisitions</CardTitle>
             <CardDescription>Everything you&apos;ve submitted, and its current status.</CardDescription>
             <CardAction>
-              <Button render={<Link href="/requisitions" />} size="sm" variant="outline">
+              <Button render={<Link href="/requisitions" />} nativeButton={false} size="sm" variant="outline">
                 View
               </Button>
             </CardAction>
@@ -46,7 +46,7 @@ export default async function DashboardHome() {
               <CardTitle>Pending my approval</CardTitle>
               <CardDescription>Requisitions waiting on your decision.</CardDescription>
               <CardAction>
-                <Button render={<Link href="/approvals" />} size="sm" variant="outline">
+                <Button render={<Link href="/approvals" />} nativeButton={false} size="sm" variant="outline">
                   Review
                 </Button>
               </CardAction>
