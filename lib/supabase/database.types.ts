@@ -295,6 +295,7 @@ export interface Database {
         Returns: void;
       };
       get_eligible_approver_ids: { Args: { p_requisition_id: string; p_stage_key: ApprovalStageKey }; Returns: string[] };
+      get_pending_approval_requisition_ids: { Args: { p_user_id: string }; Returns: string[] };
       clear_must_change_password: { Args: Record<string, never>; Returns: void };
       enqueue_email: {
         Args: {

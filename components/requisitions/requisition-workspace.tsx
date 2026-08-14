@@ -182,6 +182,15 @@ export function RequisitionWorkspace({
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               Print record
             </Button>
+            {requisition.status === "paid_posted" ? (
+              <Button
+                render={<a href={`/api/requisitions/${requisition.id}/pdf`} />}
+                nativeButton={false}
+                size="sm"
+              >
+                Download PDF
+              </Button>
+            ) : null}
           </div>
         </div>
 

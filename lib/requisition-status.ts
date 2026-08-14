@@ -31,14 +31,6 @@ export const STATUS_BADGE_VARIANT: Record<RequisitionStatus, "default" | "second
   rejected: "destructive",
 };
 
-// "Pending my approval" must also catch requisitions returned to a
-// previous stage (return_to='previous_stage') — those sit at
-// status='returned', not one of the active review statuses, but still
-// need that stage's action. RLS is still the real authority on who can
-// actually see each row; this just widens the status filter.
-export const PENDING_APPROVAL_OR_FILTER =
-  "status.in.(dept_review,finance_review,director_review,approved_for_payment),and(status.eq.returned,return_to.eq.previous_stage)";
-
 export function stageKeyForStatus(status: RequisitionStatus): "department" | "finance" | "director" | "payment" | null {
   switch (status) {
     case "dept_review":
