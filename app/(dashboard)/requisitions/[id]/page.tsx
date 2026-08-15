@@ -79,13 +79,21 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
 
   // At multi-approver stages, this user's own 'approved' vote for the
   // current round already counts — don't let them act (or vote) again.
-  const alreadyApprovedThisRound = (historyRaw ?? []).some(
-    (h) =>
-      h.stage_key === stageKey &&
-      h.actor_id === profile.id &&
-      h.decision === "approved" &&
-      h.created_at >= requisition.stage_entered_at,
-  );
+  // Exempt while returned to a previous stage: stage_entered_at only
+  // resets once resubmit_requisition runs (on the first click), so until
+  // then it still reflects the prior round — every finance approver who
+  // already cleared it before Director sent it back would otherwise be
+  // wrongly excluded from this fresh round (matches get_pending_approval_
+  // requisition_ids in 0018, which treats this the same way).
+  const alreadyApprovedThisRound =
+    !isReturnedToPreviousStage &&
+    (historyRaw ?? []).some(
+      (h) =>
+        h.stage_key === stageKey &&
+        h.actor_id === profile.id &&
+        h.decision === "approved" &&
+        h.created_at >= requisition.stage_entered_at,
+    );
 
   const canDecide =
     (stageKey === "department" || stageKey === "finance" || stageKey === "director") &&
