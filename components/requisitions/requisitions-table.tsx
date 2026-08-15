@@ -57,7 +57,7 @@ export function RequisitionsTable({ rows }: { rows: RequisitionListRow[] }) {
               </TableCell>
               <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
               <TableCell>
-                {row.status === "paid_posted" ? (
+                {row.status === "paid_posted" || row.status === "rejected" ? (
                   <Button
                     variant="ghost"
                     size="icon-sm"
