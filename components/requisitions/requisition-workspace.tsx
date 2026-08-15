@@ -154,6 +154,7 @@ export function RequisitionWorkspace({
       else {
         toast.success("Decision recorded");
         setComment("");
+        router.push("/approvals");
       }
     });
   }
