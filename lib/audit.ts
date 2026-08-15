@@ -47,6 +47,82 @@ export const AUDIT_COLUMNS = [
   "payment_status",
 ] as const;
 
+export const AUDIT_HEADERS = [
+  "Requisition Number",
+  "Date",
+  "Submitted",
+  "Status",
+  "Requester",
+  "Department",
+  "Purpose",
+  "Payee",
+  "Amount",
+  "Currency",
+  "Payment Mode",
+  "Budget Line",
+  "Account Code",
+  "Project/Fund/Class Code",
+  "Donor/Grant Source",
+  "Donor Restriction",
+  "Budget Available",
+  "Payment Voucher Number",
+  "QBO Posting Reference",
+  "Payment Status",
+];
+
+export interface AuditSourceRow {
+  requisition_number: string | null;
+  created_at: string;
+  submitted_at: string | null;
+  status: string;
+  requester_id: string;
+  department_id: string;
+  purpose: string | null;
+  payee_name: string | null;
+  amount: number | null;
+  currency: string;
+  payment_mode: string | null;
+  budget_line: string | null;
+  account_code: string | null;
+  project_fund_class_code: string | null;
+  donor_grant_source: string | null;
+  donor_restriction: string | null;
+  budget_available: string | null;
+  payment_voucher_number: string | null;
+  qbo_posting_reference: string | null;
+  payment_status: string;
+}
+
+export function auditRowToValues(
+  r: AuditSourceRow,
+  requesterName: string,
+  departmentName: string,
+  statusLabel: string,
+): (string | number)[] {
+  return [
+    r.requisition_number ?? "",
+    new Date(r.created_at).toISOString().slice(0, 10),
+    r.submitted_at ? new Date(r.submitted_at).toISOString().slice(0, 10) : "",
+    statusLabel,
+    requesterName,
+    departmentName,
+    r.purpose ?? "",
+    r.payee_name ?? "",
+    r.amount ?? "",
+    r.currency,
+    r.payment_mode ?? "",
+    r.budget_line ?? "",
+    r.account_code ?? "",
+    r.project_fund_class_code ?? "",
+    r.donor_grant_source ?? "",
+    r.donor_restriction ?? "",
+    r.budget_available ?? "",
+    r.payment_voucher_number ?? "",
+    r.qbo_posting_reference ?? "",
+    r.payment_status,
+  ];
+}
+
 export async function queryAuditRows(supabase: SupabaseClient<Database>, filters: AuditFilters) {
   let query = supabase
     .from("requisitions")

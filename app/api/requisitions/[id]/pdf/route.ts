@@ -32,8 +32,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Requisition not found" }, { status: 404 });
   }
 
-  if (requisition.status !== "paid_posted") {
-    return NextResponse.json({ error: "PDF is only available once a requisition is paid/posted." }, { status: 400 });
+  if (requisition.status !== "paid_posted" && requisition.status !== "rejected") {
+    return NextResponse.json(
+      { error: "PDF is only available for paid/posted or rejected requisitions." },
+      { status: 400 },
+    );
   }
 
   const [{ data: historyRaw }, { data: department }, { data: allProfiles }] = await Promise.all([
@@ -77,6 +80,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     })),
     generatedAt: new Date().toISOString(),
     logoSrc: loadLogoDataUri(),
+    status: requisition.status as "paid_posted" | "rejected",
   };
 
   const buffer = await renderToBuffer(RequisitionPdfDocument({ data }));

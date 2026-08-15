@@ -182,14 +182,28 @@ export function RequisitionWorkspace({
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               Print record
             </Button>
-            {requisition.status === "paid_posted" ? (
-              <Button
-                render={<a href={`/api/requisitions/${requisition.id}/pdf`} />}
-                nativeButton={false}
-                size="sm"
-              >
-                Download PDF
-              </Button>
+            {requisition.status === "paid_posted" || requisition.status === "rejected" ? (
+              <>
+                <Button
+                  render={<a href={`/api/requisitions/${requisition.id}/export?format=csv`} />}
+                  nativeButton={false}
+                  variant="outline"
+                  size="sm"
+                >
+                  Export CSV
+                </Button>
+                <Button
+                  render={<a href={`/api/requisitions/${requisition.id}/export?format=xlsx`} />}
+                  nativeButton={false}
+                  variant="outline"
+                  size="sm"
+                >
+                  Export Excel
+                </Button>
+                <Button render={<a href={`/api/requisitions/${requisition.id}/pdf`} />} nativeButton={false} size="sm">
+                  Download PDF
+                </Button>
+              </>
             ) : null}
           </div>
         </div>

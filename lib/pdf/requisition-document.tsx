@@ -11,6 +11,8 @@ const BRAND = {
   tint: "#F3F6FD",
   success: "#1C7C4B",
   successTint: "#E7F6EE",
+  destructive: "#B3261E",
+  destructiveTint: "#FBEAEA",
 };
 
 const styles = StyleSheet.create({
@@ -22,8 +24,8 @@ const styles = StyleSheet.create({
   brandSubtitle: { fontSize: 7, color: BRAND.muted, marginTop: 1, textTransform: "uppercase", letterSpacing: 1 },
   headerRight: { alignItems: "flex-end" },
   reqNumber: { fontSize: 13, fontWeight: 700 },
-  statusPill: { marginTop: 5, paddingVertical: 3, paddingHorizontal: 7, borderRadius: 3, backgroundColor: BRAND.successTint },
-  statusPillText: { fontSize: 7, fontWeight: 700, color: BRAND.success, letterSpacing: 0.5 },
+  statusPill: { marginTop: 5, paddingVertical: 3, paddingHorizontal: 7, borderRadius: 3 },
+  statusPillText: { fontSize: 7, fontWeight: 700, letterSpacing: 0.5 },
   accentBar: { flexDirection: "row", height: 1.25, marginTop: 16, marginBottom: 4 },
   accentThird: { flex: 1 },
   subheading: {
@@ -101,6 +103,7 @@ export interface RequisitionPdfData {
   }[];
   generatedAt: string;
   logoSrc: string | null;
+  status: "paid_posted" | "rejected";
 }
 
 function Field({ label, value }: { label: string; value: string | number | null | undefined }) {
@@ -122,6 +125,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
+  const isRejected = data.status === "rejected";
   return (
     <Document title={data.requisition_number ?? "Requisition"}>
       <Page size="A4" style={styles.page}>
@@ -136,8 +140,15 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
           </View>
           <View style={styles.headerRight}>
             <Text style={styles.reqNumber}>{data.requisition_number ?? "Requisition"}</Text>
-            <View style={styles.statusPill}>
-              <Text style={styles.statusPillText}>Paid / Posted</Text>
+            <View
+              style={[
+                styles.statusPill,
+                { backgroundColor: isRejected ? BRAND.destructiveTint : BRAND.successTint },
+              ]}
+            >
+              <Text style={[styles.statusPillText, { color: isRejected ? BRAND.destructive : BRAND.success }]}>
+                {isRejected ? "Rejected" : "Paid / Posted"}
+              </Text>
             </View>
           </View>
         </View>
@@ -171,10 +182,12 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
           <Field label="Donor/Grant source" value={data.donor_grant_source} />
         </Section>
 
-        <Section title="Final Processing">
-          <Field label="Payment voucher number" value={data.payment_voucher_number} />
-          <Field label="QBO posting reference" value={data.qbo_posting_reference} />
-        </Section>
+        {isRejected ? null : (
+          <Section title="Final Processing">
+            <Field label="Payment voucher number" value={data.payment_voucher_number} />
+            <Field label="QBO posting reference" value={data.qbo_posting_reference} />
+          </Section>
+        )}
 
         <Section title="Approval History">
           <View style={styles.historyHeaderRow}>
