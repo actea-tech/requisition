@@ -100,6 +100,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     isEligibleApprover &&
     !alreadyApprovedThisRound;
   const canEditFinance = stageKey === "finance" && isEligibleApprover;
+  // Only the accountant role manages who else reviews — not every eligible
+  // finance approver (which would let an added Finance Reviewer add more).
+  const canManageFinanceGroup = stageKey === "finance" && (isAdmin || profile.role === "finance_accountant");
   const canEditFinalProcessing =
     stageKey === "payment" && (isAdmin || requisition.finance_accountant_id === profile.id);
 
@@ -188,6 +191,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canEditDraftFields,
         canDecide,
         canEditFinance,
+        canManageFinanceGroup,
         canEditFinalProcessing,
         canUploadAttachments,
         isOwnerDraft: canEditDraftFields,

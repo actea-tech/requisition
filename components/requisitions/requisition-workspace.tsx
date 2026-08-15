@@ -64,6 +64,7 @@ export function RequisitionWorkspace({
     canEditDraftFields: boolean;
     canDecide: boolean;
     canEditFinance: boolean;
+    canManageFinanceGroup: boolean;
     canEditFinalProcessing: boolean;
     canUploadAttachments: boolean;
     isOwnerDraft: boolean;
@@ -247,7 +248,7 @@ export function RequisitionWorkspace({
           canDelete={permissions.isOwnerDraft}
         />
 
-        {permissions.canEditFinance ? (
+        {permissions.canManageFinanceGroup ? (
           <FinanceGroupPanel requisitionId={requisition.id} members={financeGroup} candidates={financeCandidates} />
         ) : null}
 
