@@ -167,7 +167,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   }));
 
   const financeCandidates = (allProfiles ?? [])
-    .filter((p) => p.is_active && (p.role === "finance_accountant" || p.role === "finance_reviewer"))
+    .filter((p) => p.is_active && p.id !== profile.id && (p.role === "finance_accountant" || p.role === "finance_reviewer"))
     .map((p) => ({ id: p.id, full_name: p.full_name }));
 
   return (
