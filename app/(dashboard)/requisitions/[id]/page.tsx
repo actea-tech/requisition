@@ -77,7 +77,20 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     isEligibleApprover = isAdmin || Boolean(eligibleIds?.includes(profile.id));
   }
 
-  const canDecide = stageKey === "department" || stageKey === "finance" || stageKey === "director" ? isEligibleApprover : false;
+  // At multi-approver stages, this user's own 'approved' vote for the
+  // current round already counts — don't let them act (or vote) again.
+  const alreadyApprovedThisRound = (historyRaw ?? []).some(
+    (h) =>
+      h.stage_key === stageKey &&
+      h.actor_id === profile.id &&
+      h.decision === "approved" &&
+      h.created_at >= requisition.stage_entered_at,
+  );
+
+  const canDecide =
+    (stageKey === "department" || stageKey === "finance" || stageKey === "director") &&
+    isEligibleApprover &&
+    !alreadyApprovedThisRound;
   const canEditFinance = stageKey === "finance" && isEligibleApprover;
   const canEditFinalProcessing =
     stageKey === "payment" && (isAdmin || requisition.finance_accountant_id === profile.id);
