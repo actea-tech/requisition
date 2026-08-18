@@ -15,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -38,6 +39,7 @@ export function AppSidebar({
   role: UserRole;
 }) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   return (
     <Sidebar collapsible="icon">
@@ -69,6 +71,7 @@ export function AppSidebar({
                       isActive={isActive}
                       tooltip={item.label}
                       size="lg"
+                      onClick={() => isMobile && setOpenMobile(false)}
                     >
                       <NavIcon icon={item.icon} />
                       <span>{item.label}</span>
@@ -97,7 +100,7 @@ export function AppSidebar({
                 <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56">
-                <DropdownMenuItem render={<Link href="/profile" />}>
+                <DropdownMenuItem render={<Link href="/profile" />} onClick={() => isMobile && setOpenMobile(false)}>
                   <User className="size-4" />
                   Profile
                 </DropdownMenuItem>
