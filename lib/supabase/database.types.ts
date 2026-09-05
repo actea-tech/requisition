@@ -58,7 +58,13 @@ export interface Database {
           department_id?: string | null;
           is_active?: boolean;
         };
-        Update: Partial<{ full_name: string; role: UserRole; department_id: string | null; is_active: boolean }>;
+        Update: Partial<{
+          full_name: string;
+          role: UserRole;
+          department_id: string | null;
+          is_active: boolean;
+          must_change_password: boolean;
+        }>;
         Relationships: [];
       };
       department_heads: {
