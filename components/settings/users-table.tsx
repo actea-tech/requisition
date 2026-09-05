@@ -30,6 +30,7 @@ interface UserRow {
   role: UserRole;
   department_id: string | null;
   is_active: boolean;
+  must_change_password: boolean;
 }
 
 export function UsersTable({
@@ -46,6 +47,7 @@ export function UsersTable({
           <TableHead>Name</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Department</TableHead>
+          <TableHead>Account setup</TableHead>
           <TableHead>Active</TableHead>
           <TableHead className="w-10" />
         </TableRow>
@@ -131,6 +133,13 @@ function UserTableRow({
             ))}
           </SelectContent>
         </Select>
+      </TableCell>
+      <TableCell>
+        {user.must_change_password ? (
+          <Badge variant="secondary">Inactive &mdash; hasn&apos;t signed in yet</Badge>
+        ) : (
+          <Badge>Active</Badge>
+        )}
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
