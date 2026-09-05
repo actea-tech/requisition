@@ -73,3 +73,28 @@ export async function setUserActive(userId: string, isActive: boolean) {
   await supabaseAdmin.from("profiles").update({ is_active: isActive }).eq("id", userId);
   revalidatePath("/settings/users");
 }
+
+export async function deleteUser(userId: string) {
+  const admin = await requireAdmin();
+  if (userId === admin.id) {
+    return { error: "You can't delete your own account." };
+  }
+
+  // profiles.id references auth.users(id) on delete cascade, so deleting
+  // the auth user (not just the profiles row) is what actually removes
+  // them — and requisitions.requester_id/finance_accountant_id/director_id,
+  // approval_actions.actor_id, requisition_attachments.uploaded_by, and
+  // finance_approver_group.added_by all reference profiles with no cascade,
+  // so that delete is blocked if this user has any requisition history.
+  const supabaseAdmin = createAdminClient();
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+  if (error) {
+    const message = /foreign key|violates|constraint/i.test(error.message)
+      ? "This user has requisition history and can't be removed. Disable them instead."
+      : error.message;
+    return { error: message };
+  }
+
+  revalidatePath("/settings/users");
+  return { error: null };
+}

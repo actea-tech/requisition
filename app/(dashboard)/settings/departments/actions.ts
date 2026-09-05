@@ -25,6 +25,27 @@ export async function setDepartmentActive(departmentId: string, isActive: boolea
   revalidatePath("/settings/departments");
 }
 
+export async function deleteDepartment(departmentId: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("departments").delete().eq("id", departmentId);
+  if (error) {
+    // requisitions.department_id has no ON DELETE clause (unlike
+    // department_heads/approval_stage_config, which cascade) — deleting a
+    // department with any requisitions against it fails with a foreign key
+    // violation. That's the actual "no transactional data" guard; this just
+    // turns it into a readable message instead of a raw Postgres error.
+    if (error.code === "23503") {
+      return { error: "This department has existing requisitions and can't be removed. Deactivate it instead." };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/settings/departments");
+  return { error: null };
+}
+
 export async function addDepartmentHead(departmentId: string, userId: string) {
   await requireAdmin();
   const supabase = await createClient();

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,19 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   addDepartmentHead,
+  deleteDepartment,
   removeDepartmentHead,
   setDepartmentActive,
   setDepartmentApprovalOverride,
@@ -44,6 +57,7 @@ export function DepartmentCard({
   const [pickerValue, setPickerValue] = useState("");
   const [mode, setMode] = useState<ApprovalMode | "default">(override?.mode ?? "default");
   const [quorum, setQuorum] = useState(override?.quorum_count?.toString() ?? "2");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const headIds = new Set(heads.map((h) => h.id));
   const availableCandidates = candidates.filter((c) => !headIds.has(c.id));
@@ -66,6 +80,15 @@ export function DepartmentCard({
     });
   }
 
+  function handleDelete() {
+    setConfirmDeleteOpen(false);
+    startTransition(async () => {
+      const result = await deleteDepartment(department.id);
+      if (result.error) toast.error(result.error);
+      else toast.success(`"${department.name}" deleted`);
+    });
+  }
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -79,6 +102,26 @@ export function DepartmentCard({
             checked={department.is_active}
             onCheckedChange={(checked) => startTransition(() => setDepartmentActive(department.id, checked))}
           />
+          <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+            <AlertDialogTrigger render={<Button variant="ghost" size="icon" className="size-7" disabled={isPending} />}>
+              <Trash2 className="size-4" />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete {department.name}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This can&apos;t be undone. A department with existing requisitions can&apos;t be deleted — deactivate
+                  it instead.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction variant="destructive" disabled={isPending} onClick={handleDelete}>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
