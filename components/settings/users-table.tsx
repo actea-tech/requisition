@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteUser, setUserActive, updateUserRole } from "@/app/(dashboard)/settings/users/actions";
+import { deleteUser, resetUserPassword, setUserActive, updateUserRole } from "@/app/(dashboard)/settings/users/actions";
 import { ROLE_OPTIONS } from "@/lib/roles";
 import type { UserRole } from "@/lib/supabase/database.types";
 
@@ -49,7 +49,7 @@ export function UsersTable({
           <TableHead>Department</TableHead>
           <TableHead>Account setup</TableHead>
           <TableHead>Active</TableHead>
-          <TableHead className="w-10" />
+          <TableHead className="w-20" />
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -70,6 +70,7 @@ function UserTableRow({
 }) {
   const [isPending, startTransition] = useTransition();
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
 
   function handleDelete() {
     setConfirmDeleteOpen(false);
@@ -77,6 +78,15 @@ function UserTableRow({
       const result = await deleteUser(user.id);
       if (result.error) toast.error(result.error);
       else toast.success(`"${user.full_name}" deleted`);
+    });
+  }
+
+  function handleResetPassword() {
+    setConfirmResetOpen(false);
+    startTransition(async () => {
+      const result = await resetUserPassword(user.id);
+      if (result.error) toast.error(result.error);
+      else toast.success(`New temporary password emailed to ${user.full_name}`);
     });
   }
 
@@ -152,26 +162,54 @@ function UserTableRow({
         </div>
       </TableCell>
       <TableCell>
-        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-          <AlertDialogTrigger render={<Button variant="ghost" size="icon" className="size-7" disabled={isPending} />}>
-            <Trash2 className="size-4" />
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete {user.full_name}?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This can&apos;t be undone. A user with requisition history (submitted, approved, uploaded, etc.)
-                can&apos;t be deleted — disable them instead.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" disabled={isPending} onClick={handleDelete}>
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center gap-1">
+          <AlertDialog open={confirmResetOpen} onOpenChange={setConfirmResetOpen}>
+            <AlertDialogTrigger
+              render={<Button variant="ghost" size="icon" className="size-7" disabled={isPending} />}
+            >
+              <KeyRound className="size-4" />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {user.must_change_password ? "Resend account details" : "Reset password"} for {user.full_name}?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {user.must_change_password
+                    ? "Generates a new temporary password and emails them their sign-in details again."
+                    : "Generates a new temporary password and emails it to them. They'll be required to set a new password the next time they sign in."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction disabled={isPending} onClick={handleResetPassword}>
+                  Send
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+            <AlertDialogTrigger render={<Button variant="ghost" size="icon" className="size-7" disabled={isPending} />}>
+              <Trash2 className="size-4" />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete {user.full_name}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This can&apos;t be undone. A user with requisition history (submitted, approved, uploaded, etc.)
+                  can&apos;t be deleted — disable them instead.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction variant="destructive" disabled={isPending} onClick={handleDelete}>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </TableCell>
     </TableRow>
   );
