@@ -56,11 +56,13 @@ export function RequisitionWorkspace({
   financeGroup,
   financeCandidates,
   previousStageLabel,
+  currencyOptions,
 }: {
   requisition: RequisitionRowForForm;
   sections: SectionSpec[];
   attachments: AttachmentRow[];
   history: HistoryEntry[];
+  currencyOptions: { value: string; label: string }[];
   permissions: {
     canEditDraftFields: boolean;
     canDecide: boolean;
@@ -246,6 +248,7 @@ export function RequisitionWorkspace({
                       value={values[field.field_key] ?? ""}
                       onChange={(v) => setField(field.field_key, v)}
                       disabled={!section.editable || isPending}
+                      optionsOverride={field.field_key === "currency" ? currencyOptions : undefined}
                     />
                   </div>
                 ))}

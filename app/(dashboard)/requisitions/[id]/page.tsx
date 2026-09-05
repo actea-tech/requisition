@@ -34,6 +34,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: allProfiles },
     { data: department },
     { data: directorAuthModeRow },
+    { data: currenciesRaw },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -52,7 +53,10 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     supabase.from("profiles").select("id, full_name, role, is_active"),
     supabase.from("departments").select("name").eq("id", requisition.department_id).single(),
     supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
+    supabase.from("currencies").select("code").order("code"),
   ]);
+
+  const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
 
   const profileById = new Map((allProfiles ?? []).map((p) => [p.id, p]));
   const nameFor = (uid: string | null) => (uid ? (profileById.get(uid)?.full_name ?? "Unknown") : "Unknown");
@@ -212,6 +216,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       financeGroup={financeGroup}
       financeCandidates={financeCandidates}
       previousStageLabel={previousStageLabel}
+      currencyOptions={currencyOptions}
     />
   );
 }

@@ -18,13 +18,17 @@ export function DynamicField({
   value,
   onChange,
   disabled,
+  optionsOverride,
 }: {
   field: FieldMeta;
   value: string;
   onChange: (value: string) => void;
   disabled: boolean;
+  /** Replaces the field's static FIELD_SPECS options with a DB-backed list (e.g. currencies). */
+  optionsOverride?: { value: string; label: string }[];
 }) {
   const spec = FIELD_SPECS[field.field_key] ?? { type: "text" as const };
+  const options = optionsOverride ?? spec.options ?? [];
   const id = `field-${field.field_key}`;
 
   return (
@@ -41,13 +45,13 @@ export function DynamicField({
           value={value || undefined}
           onValueChange={(v) => onChange(v ?? "")}
           disabled={disabled}
-          items={Object.fromEntries((spec.options ?? []).map((o) => [o.value, o.label]))}
+          items={Object.fromEntries(options.map((o) => [o.value, o.label]))}
         >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select…" />
           </SelectTrigger>
           <SelectContent>
-            {spec.options?.map((opt) => (
+            {options.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>

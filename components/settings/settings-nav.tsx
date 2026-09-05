@@ -8,6 +8,7 @@ const TABS = [
   { href: "/settings/departments", label: "Departments" },
   { href: "/settings/users", label: "Users" },
   { href: "/settings/form-fields", label: "Form Fields" },
+  { href: "/settings/currencies", label: "Currencies" },
   { href: "/settings/approval-rules", label: "Approval Rules" },
 ];
 

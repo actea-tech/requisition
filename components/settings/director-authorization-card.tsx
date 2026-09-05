@@ -17,9 +17,11 @@ type DirectorAuthMode = "accountant_discretion" | "amount_threshold";
 export function DirectorAuthorizationCard({
   initialMode,
   thresholds,
+  currencyOptions,
 }: {
   initialMode: DirectorAuthMode;
   thresholds: { currency: string; threshold_amount: number }[];
+  currencyOptions: { value: string; label: string }[];
 }) {
   const [mode, setMode] = useState<DirectorAuthMode>(initialMode);
   const [isPending, startTransition] = useTransition();
@@ -35,9 +37,9 @@ export function DirectorAuthorizationCard({
 
   function handleAddThreshold() {
     const amount = Number(newAmount);
-    if (!newCurrency.trim() || !amount) return;
+    if (!newCurrency || !amount) return;
     startTransition(async () => {
-      await upsertDirectorAuthThreshold(newCurrency.trim().toUpperCase(), amount);
+      await upsertDirectorAuthThreshold(newCurrency, amount);
       setNewCurrency("");
       setNewAmount("");
     });
@@ -105,12 +107,23 @@ export function DirectorAuthorizationCard({
             )}
 
             <div className="flex gap-2">
-              <Input
-                placeholder="Currency (e.g. KES)"
-                value={newCurrency}
-                onChange={(e) => setNewCurrency(e.target.value)}
-                className="w-40"
-              />
+              <Select
+                value={newCurrency || undefined}
+                onValueChange={(v) => setNewCurrency(v ?? "")}
+                disabled={isPending}
+                items={Object.fromEntries(currencyOptions.map((c) => [c.value, c.label]))}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencyOptions.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 type="number"
                 placeholder="Threshold amount"

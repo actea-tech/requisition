@@ -285,6 +285,12 @@ export interface Database {
         Update: Partial<{ threshold_amount: number }>;
         Relationships: [];
       };
+      currencies: {
+        Row: { code: string; created_at: string };
+        Insert: { code: string };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
