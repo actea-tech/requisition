@@ -5,6 +5,11 @@ export interface FieldSpec {
   options?: { value: string; label: string }[];
 }
 
+const REQUISITION_TYPES = [
+  { value: "departmental", label: "Departmental" },
+  { value: "individual", label: "Individual" },
+];
+
 const YES_NO = [
   { value: "yes", label: "Yes" },
   { value: "no", label: "No" },
@@ -28,6 +33,7 @@ const PAYMENT_STATUSES = [
 ];
 
 export const FIELD_SPECS: Record<string, FieldSpec> = {
+  requisition_type: { type: "select", options: REQUISITION_TYPES },
   purpose: { type: "textarea" },
   activity_project: { type: "text" },
   payee_name: { type: "text" },

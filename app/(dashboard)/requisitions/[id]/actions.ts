@@ -11,6 +11,7 @@ type RequisitionUpdate = Database["public"]["Tables"]["requisitions"]["Update"];
 // column-level GRANTs (migration 0008) are the real enforcement; this just
 // keeps the Server Action from forwarding stray keys.
 const EDITABLE_FIELDS = [
+  "requisition_type",
   "purpose",
   "activity_project",
   "payee_name",
@@ -91,6 +92,18 @@ export async function recordDecisionAction(
     p_comments: comments,
     p_return_to: returnTo,
     p_requires_reapproval: requiresReapproval,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
+export async function setRequiresDirectorAuthorizationAction(requisitionId: string, value: "yes" | "no") {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_requires_director_authorization", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+    p_value: value,
   });
   revalidatePath(`/requisitions/${requisitionId}`);
   return { error: error?.message ?? null };
