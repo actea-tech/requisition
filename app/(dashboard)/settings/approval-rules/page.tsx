@@ -1,15 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
 import { StageModeCard } from "@/components/settings/stage-mode-card";
+import { DirectorAuthorizationCard } from "@/components/settings/director-authorization-card";
 
 export default async function ApprovalRulesSettingsPage() {
   const supabase = await createClient();
-  const { data: config } = await supabase
-    .from("approval_stage_config")
-    .select("stage_key, mode, quorum_count")
-    .is("department_id", null);
+  const [{ data: config }, { data: directorAuthModeRow }, { data: thresholds }, { data: currenciesRaw }] =
+    await Promise.all([
+      supabase.from("approval_stage_config").select("stage_key, mode, quorum_count").is("department_id", null),
+      supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
+      supabase.from("director_auth_thresholds").select("currency, threshold_amount").order("currency"),
+      supabase.from("currencies").select("code").order("code"),
+    ]);
 
   const financeConfig = config?.find((c) => c.stage_key === "finance");
   const directorConfig = config?.find((c) => c.stage_key === "director");
+  const directorAuthMode = directorAuthModeRow?.value === "amount_threshold" ? "amount_threshold" : "accountant_discretion";
+  const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
 
   return (
     <div className="space-y-4">
@@ -33,6 +39,12 @@ export default async function ApprovalRulesSettingsPage() {
         description="Applies to everyone with the Director role."
         initialMode={directorConfig?.mode ?? "first_approver"}
         initialQuorum={directorConfig?.quorum_count ?? null}
+      />
+
+      <DirectorAuthorizationCard
+        initialMode={directorAuthMode}
+        thresholds={thresholds ?? []}
+        currencyOptions={currencyOptions}
       />
     </div>
   );

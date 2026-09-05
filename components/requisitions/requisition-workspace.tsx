@@ -20,6 +20,7 @@ import {
   deleteDraftRequisition,
   recordDecisionAction,
   resubmitRequisitionAction,
+  setRequiresDirectorAuthorizationAction,
   submitRequisitionAction,
   updateRequisitionFields,
 } from "@/app/(dashboard)/requisitions/[id]/actions";
@@ -55,16 +56,19 @@ export function RequisitionWorkspace({
   financeGroup,
   financeCandidates,
   previousStageLabel,
+  currencyOptions,
 }: {
   requisition: RequisitionRowForForm;
   sections: SectionSpec[];
   attachments: AttachmentRow[];
   history: HistoryEntry[];
+  currencyOptions: { value: string; label: string }[];
   permissions: {
     canEditDraftFields: boolean;
     canDecide: boolean;
     canEditFinance: boolean;
     canManageFinanceGroup: boolean;
+    canSetDirectorAuthorization: boolean;
     canEditFinalProcessing: boolean;
     canUploadAttachments: boolean;
     isOwnerDraft: boolean;
@@ -76,6 +80,9 @@ export function RequisitionWorkspace({
   const router = useRouter();
   const [returnTo, setReturnTo] = useState<"requester" | "previous_stage">("requester");
   const [requiresReapproval, setRequiresReapproval] = useState(true);
+  const [requiresDirectorAuth, setRequiresDirectorAuth] = useState<"yes" | "no">(
+    requisition.requires_director_authorization === "no" ? "no" : "yes",
+  );
   const [values, setValues] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
     for (const section of sections) {
@@ -160,6 +167,14 @@ export function RequisitionWorkspace({
     });
   }
 
+  function handleSetRequiresDirectorAuth(value: "yes" | "no") {
+    setRequiresDirectorAuth(value);
+    startTransition(async () => {
+      const result = await setRequiresDirectorAuthorizationAction(requisition.id, value);
+      if (result.error) toast.error(result.error);
+    });
+  }
+
   function handleCompletePayment() {
     startTransition(async () => {
       await updateRequisitionFields(requisition.id, values);
@@ -233,6 +248,7 @@ export function RequisitionWorkspace({
                       value={values[field.field_key] ?? ""}
                       onChange={(v) => setField(field.field_key, v)}
                       disabled={!section.editable || isPending}
+                      optionsOverride={field.field_key === "currency" ? currencyOptions : undefined}
                     />
                   </div>
                 ))}
@@ -314,6 +330,26 @@ export function RequisitionWorkspace({
               </>
             ) : null}
 
+            {permissions.canSetDirectorAuthorization ? (
+              <div className="space-y-2 rounded-md border p-2.5">
+                <Label className="text-xs">Requires Director authorization?</Label>
+                <Select
+                  value={requiresDirectorAuth}
+                  onValueChange={(v) => handleSetRequiresDirectorAuth((v ?? "yes") as "yes" | "no")}
+                  disabled={isPending}
+                  items={{ yes: "Yes — send to Director", no: "No — clear directly for payment" }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes — send to Director</SelectItem>
+                    <SelectItem value="no">No — clear directly for payment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
             {permissions.canDecide ? (
               <div className="space-y-2">
                 <Label htmlFor="decision-comment">Comment</Label>
@@ -391,7 +427,10 @@ export function RequisitionWorkspace({
               </div>
             ) : null}
 
-            {!permissions.canEditDraftFields && !permissions.canDecide && !permissions.canEditFinalProcessing ? (
+            {!permissions.canEditDraftFields &&
+            !permissions.canDecide &&
+            !permissions.canSetDirectorAuthorization &&
+            !permissions.canEditFinalProcessing ? (
               <p className="text-sm text-muted-foreground">No action needed from you right now.</p>
             ) : null}
           </CardContent>

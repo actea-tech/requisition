@@ -17,6 +17,7 @@ export type RequisitionStatus =
   | "paid_posted"
   | "returned"
   | "rejected";
+export type RequisitionScope = "departmental" | "individual";
 export type YesNo = "yes" | "no";
 export type YesNoUnsure = "yes" | "no" | "not_sure";
 export type EmailStatus = "pending" | "sent" | "failed";
@@ -118,6 +119,7 @@ export interface Database {
           requisition_number: string | null;
           requester_id: string;
           department_id: string;
+          requisition_type: RequisitionScope;
           status: RequisitionStatus;
           purpose: string | null;
           activity_project: string | null;
@@ -137,6 +139,7 @@ export interface Database {
           outstanding_advance: YesNo | null;
           finance_comments: string | null;
           budget_available: YesNo | null;
+          requires_director_authorization: YesNo;
           finance_cleared: boolean;
           finance_accountant_id: string | null;
           director_comments: string | null;
@@ -159,6 +162,7 @@ export interface Database {
           requisition_number?: string;
           requester_id: string;
           department_id: string;
+          requisition_type?: RequisitionScope;
           purpose?: string | null;
           activity_project?: string | null;
           payee_name?: string | null;
@@ -176,6 +180,7 @@ export interface Database {
           outstanding_advance?: YesNo | null;
         };
         Update: Partial<{
+          requisition_type: RequisitionScope;
           purpose: string | null;
           activity_project: string | null;
           payee_name: string | null;
@@ -274,6 +279,18 @@ export interface Database {
         Update: Partial<{ value: string }>;
         Relationships: [];
       };
+      director_auth_thresholds: {
+        Row: { currency: string; threshold_amount: number; updated_at: string };
+        Insert: { currency: string; threshold_amount: number };
+        Update: Partial<{ threshold_amount: number }>;
+        Relationships: [];
+      };
+      currencies: {
+        Row: { code: string; created_at: string };
+        Insert: { code: string };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -296,6 +313,10 @@ export interface Database {
       };
       get_eligible_approver_ids: { Args: { p_requisition_id: string; p_stage_key: ApprovalStageKey }; Returns: string[] };
       get_pending_approval_requisition_ids: { Args: { p_user_id: string }; Returns: string[] };
+      set_requires_director_authorization: {
+        Args: { p_requisition_id: string; p_actor_id: string; p_value: YesNo };
+        Returns: void;
+      };
       clear_must_change_password: { Args: Record<string, never>; Returns: void };
       enqueue_email: {
         Args: {
@@ -314,6 +335,7 @@ export interface Database {
       approval_stage_key: ApprovalStageKey;
       approval_decision: ApprovalDecision;
       requisition_status: RequisitionStatus;
+      requisition_scope: RequisitionScope;
       yes_no: YesNo;
       yes_no_unsure: YesNoUnsure;
       email_status: EmailStatus;

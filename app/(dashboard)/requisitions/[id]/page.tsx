@@ -33,6 +33,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: financeGroupRaw },
     { data: allProfiles },
     { data: department },
+    { data: directorAuthModeRow },
+    { data: currenciesRaw },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -50,7 +52,11 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     supabase.from("finance_approver_group").select("user_id").eq("requisition_id", id),
     supabase.from("profiles").select("id, full_name, role, is_active"),
     supabase.from("departments").select("name").eq("id", requisition.department_id).single(),
+    supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
+    supabase.from("currencies").select("code").order("code"),
   ]);
+
+  const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
 
   const profileById = new Map((allProfiles ?? []).map((p) => [p.id, p]));
   const nameFor = (uid: string | null) => (uid ? (profileById.get(uid)?.full_name ?? "Unknown") : "Unknown");
@@ -103,6 +109,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // Only the accountant role manages who else reviews — not every eligible
   // finance approver (which would let an added Finance Reviewer add more).
   const canManageFinanceGroup = stageKey === "finance" && (isAdmin || profile.role === "finance_accountant");
+  const directorAuthMode = directorAuthModeRow?.value === "amount_threshold" ? "amount_threshold" : "accountant_discretion";
+  const canSetDirectorAuthorization =
+    stageKey === "finance" && directorAuthMode === "accountant_discretion" && (isAdmin || profile.role === "finance_accountant");
   const canEditFinalProcessing =
     stageKey === "payment" && (isAdmin || requisition.finance_accountant_id === profile.id);
 
@@ -112,7 +121,14 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     isOwner && (requisition.status === "draft" || (requisition.status === "returned" && !isReturnedToPreviousStage));
   const canUploadAttachments = canEditDraftFields || canEditFinance || isAdmin;
 
-  const previousStageLabel = stageKey === "finance" ? "Department Head" : stageKey === "director" ? "Finance" : null;
+  // Individual requisitions skip Department Head review entirely, so
+  // there's no previous stage to return a Finance decision to.
+  const previousStageLabel =
+    stageKey === "finance" && requisition.requisition_type === "departmental"
+      ? "Department Head"
+      : stageKey === "director"
+        ? "Finance"
+        : null;
 
   // Field/section visibility toggles (Settings > Form Fields) are a
   // requester-facing convenience only — from department head upward,
@@ -192,6 +208,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canDecide,
         canEditFinance,
         canManageFinanceGroup,
+        canSetDirectorAuthorization,
         canEditFinalProcessing,
         canUploadAttachments,
         isOwnerDraft: canEditDraftFields,
@@ -199,6 +216,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       financeGroup={financeGroup}
       financeCandidates={financeCandidates}
       previousStageLabel={previousStageLabel}
+      currencyOptions={currencyOptions}
     />
   );
 }
