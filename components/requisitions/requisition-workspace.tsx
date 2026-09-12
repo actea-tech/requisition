@@ -17,9 +17,11 @@ import { AttachmentsPanel, type AttachmentRow } from "@/components/requisitions/
 import { FinanceGroupPanel } from "@/components/requisitions/finance-group-panel";
 import { AuthorizerGroupPanel } from "@/components/requisitions/authorizer-group-panel";
 import { AssistantForwardControl } from "@/components/requisitions/assistant-forward-control";
+import { CancelRequisitionControl } from "@/components/requisitions/cancel-requisition-control";
 import {
   clearRequisitionAuthorizers,
   completePaymentAction,
+  decideCancellationAction,
   deleteDraftRequisition,
   recordDecisionAction,
   resubmitRequisitionAction,
@@ -42,6 +44,8 @@ export interface RequisitionRowForForm {
   status: RequisitionStatus;
   returned_from_stage: RequisitionStatus | null;
   return_reason: string | null;
+  cancellation_status: "requested" | "approved" | "denied" | null;
+  cancellation_reason: string | null;
   amount: number | null;
   currency: string;
   requesterName: string;
@@ -66,6 +70,7 @@ export function RequisitionWorkspace({
   authorizationMethodOptions,
   assistantCandidates,
   forwardedAssistantId,
+  requisitionTypeOptions,
 }: {
   requisition: RequisitionRowForForm;
   sections: SectionSpec[];
@@ -82,6 +87,8 @@ export function RequisitionWorkspace({
     canUploadAttachments: boolean;
     canManageAuthorizers: boolean;
     requiresAuthorizationMethodOnApprove: boolean;
+    canCancelRequisition: boolean;
+    canDecideCancellation: boolean;
     isOwnerDraft: boolean;
   };
   financeGroup: { id: string; full_name: string }[];
@@ -93,6 +100,8 @@ export function RequisitionWorkspace({
   authorizationMethodOptions: { value: string; label: string }[];
   assistantCandidates: { id: string; full_name: string }[];
   forwardedAssistantId: string | null;
+  /** Role-filtered options for the Requisition type field; undefined falls back to the static departmental/individual list. */
+  requisitionTypeOptions?: { value: string; label: string }[];
 }) {
   const router = useRouter();
   const [returnTo, setReturnTo] = useState<"requester" | "previous_stage">("requester");
@@ -214,6 +223,14 @@ export function RequisitionWorkspace({
     });
   }
 
+  function handleDecideCancellation(approve: boolean) {
+    startTransition(async () => {
+      const result = await decideCancellationAction(requisition.id, approve);
+      if (result.error) toast.error(result.error);
+      else toast.success(approve ? "Cancellation approved" : "Cancellation denied");
+    });
+  }
+
   return (
     <div className="grid gap-6 print:block lg:grid-cols-[1fr_320px]">
       <div className="space-y-6">
@@ -264,6 +281,35 @@ export function RequisitionWorkspace({
           </Card>
         ) : null}
 
+        {requisition.cancellation_status === "requested" ? (
+          <Card className="border-destructive/40 bg-destructive/5">
+            <CardContent className="space-y-2 pt-6 text-sm">
+              <p className="font-medium text-destructive">Cancellation requested</p>
+              <p className="text-muted-foreground">{requisition.cancellation_reason}</p>
+              {permissions.canDecideCancellation ? (
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={isPending}
+                    onClick={() => handleDecideCancellation(true)}
+                  >
+                    Approve cancellation
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isPending}
+                    onClick={() => handleDecideCancellation(false)}
+                  >
+                    Deny
+                  </Button>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
         {sections.map((section) =>
           section.fields.length === 0 ? null : (
             <Card key={section.key}>
@@ -278,7 +324,13 @@ export function RequisitionWorkspace({
                       value={values[field.field_key] ?? ""}
                       onChange={(v) => setField(field.field_key, v)}
                       disabled={!section.editable || isPending}
-                      optionsOverride={field.field_key === "currency" ? currencyOptions : undefined}
+                      optionsOverride={
+                        field.field_key === "currency"
+                          ? currencyOptions
+                          : field.field_key === "requisition_type"
+                            ? requisitionTypeOptions
+                            : undefined
+                      }
                     />
                   </div>
                 ))}
@@ -510,10 +562,18 @@ export function RequisitionWorkspace({
               </div>
             ) : null}
 
+            {permissions.canCancelRequisition ? (
+              <CancelRequisitionControl
+                requisitionId={requisition.id}
+                alreadyAuthorized={requisition.status === "approved_for_payment"}
+              />
+            ) : null}
+
             {!permissions.canEditDraftFields &&
             !permissions.canDecide &&
             !permissions.canSetDirectorAuthorization &&
-            !permissions.canEditFinalProcessing ? (
+            !permissions.canEditFinalProcessing &&
+            !permissions.canCancelRequisition ? (
               <p className="text-sm text-muted-foreground">No action needed from you right now.</p>
             ) : null}
           </CardContent>

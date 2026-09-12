@@ -5,10 +5,17 @@ export interface FieldSpec {
   options?: { value: string; label: string }[];
 }
 
-const REQUISITION_TYPES = [
+export const REQUISITION_TYPES = [
   { value: "departmental", label: "Departmental" },
   { value: "individual", label: "Individual" },
 ];
+
+// Only offered to finance_accountant/finance_assistant/admin requesters —
+// see requisitionTypeOptions in app/(dashboard)/requisitions/[id]/page.tsx.
+export const FINANCE_DIRECT_REQUISITION_TYPE = {
+  value: "finance_direct",
+  label: "Finance (direct to authorization)",
+};
 
 const YES_NO = [
   { value: "yes", label: "Yes" },

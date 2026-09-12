@@ -8,6 +8,7 @@ import {
   type SectionSpec,
 } from "@/components/requisitions/requisition-workspace";
 import type { FormSection } from "@/lib/supabase/database.types";
+import { REQUISITION_TYPES, FINANCE_DIRECT_REQUISITION_TYPE } from "@/lib/requisition-fields";
 
 const SECTION_DEFS: { key: FormSection; label: string }[] = [
   { key: "request_details", label: "Request Details" },
@@ -124,9 +125,23 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     stageKey === "payment" && (isAdmin || requisition.finance_accountant_id === profile.id);
   // Reachable at either stage: a requisition may already be at
   // director_review with nobody yet selected (Finance-direct type).
+  // Deliberately broader than canManageFinanceGroup — includes the
+  // Assistant too, so whoever raised/is handling a Finance-direct
+  // requisition can pick authorizers themselves (matches
+  // requisition_authorizers_write's RLS, migration 0031).
   const canManageAuthorizers =
-    (stageKey === "finance" || stageKey === "director") && (isAdmin || profile.role === "finance_accountant");
+    (stageKey === "finance" || stageKey === "director") &&
+    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant");
   const requiresAuthorizationMethodOnApprove = stageKey === "director";
+
+  // Finance can cancel outright up until it's fully authorized; past that
+  // point, cancel_requisition() itself only *requests* cancellation and
+  // requires the Director's sign-off (decide_cancellation) — see migration
+  // 0036.
+  const canCancelRequisition =
+    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
+    !["paid_posted", "cancelled"].includes(requisition.status);
+  const canDecideCancellation = (isAdmin || profile.role === "director") && requisition.cancellation_status === "requested";
 
   // The requester's own edit-then-submit/resubmit flow — draft, or
   // returned straight back to them (not redirected to a previous stage).
@@ -233,6 +248,15 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
 
   const forwardedAssistantId = assistantForwardsRaw?.[0]?.assistant_id ?? null;
 
+  // "Finance (direct to authorization)" is only offered to requesters who
+  // can actually route straight past both review stages — everyone else
+  // still only sees Departmental/Individual.
+  const canRaiseFinanceDirect =
+    isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant";
+  const requisitionTypeOptions = canRaiseFinanceDirect
+    ? [...REQUISITION_TYPES, FINANCE_DIRECT_REQUISITION_TYPE]
+    : undefined;
+
   return (
     <RequisitionWorkspace
       requisition={requisitionForForm}
@@ -249,6 +273,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canUploadAttachments,
         canManageAuthorizers,
         requiresAuthorizationMethodOnApprove,
+        canCancelRequisition,
+        canDecideCancellation,
         isOwnerDraft: canEditDraftFields,
       }}
       financeGroup={financeGroup}
@@ -261,6 +287,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       authorizationMethodOptions={authorizationMethodOptions}
       assistantCandidates={assistantCandidates}
       forwardedAssistantId={forwardedAssistantId}
+      requisitionTypeOptions={requisitionTypeOptions}
     />
   );
 }

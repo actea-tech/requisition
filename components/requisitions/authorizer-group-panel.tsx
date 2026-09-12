@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -47,8 +48,16 @@ export function AuthorizerGroupPanel({
 
   function doAdd(userId: string) {
     startTransition(async () => {
-      await addRequisitionAuthorizer(requisitionId, userId);
+      const result = await addRequisitionAuthorizer(requisitionId, userId);
+      if (result.error) toast.error(result.error);
       setPicked("");
+    });
+  }
+
+  function doRemove(userId: string) {
+    startTransition(async () => {
+      const result = await removeRequisitionAuthorizer(requisitionId, userId);
+      if (result.error) toast.error(result.error);
     });
   }
 
@@ -68,7 +77,9 @@ export function AuthorizerGroupPanel({
           <CardTitle className="text-base">Authorizers</CardTitle>
           <CardDescription>
             Select 1–4 people to authorize this payment. All of them must approve before it moves to payment
-            processing.
+            processing. You can still add or remove someone later — even after it&apos;s fully authorized or
+            already at Payment Processing (e.g. if an authorizer can&apos;t access the platform) — adding someone
+            at that point reopens it until they&apos;ve approved too.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -89,12 +100,7 @@ export function AuthorizerGroupPanel({
                       className="flex items-center justify-between rounded-md border px-3 py-1.5 text-sm"
                     >
                       {m.full_name}
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        disabled={isPending}
-                        onClick={() => startTransition(() => removeRequisitionAuthorizer(requisitionId, m.id))}
-                      >
+                      <Button variant="ghost" size="icon-sm" disabled={isPending} onClick={() => doRemove(m.id)}>
                         <Trash2 className="size-4" />
                       </Button>
                     </li>

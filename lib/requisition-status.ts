@@ -18,6 +18,7 @@ export const STATUS_LABELS: Record<RequisitionStatus, string> = {
   paid_posted: "Paid / Posted",
   returned: "Returned for Correction",
   rejected: "Rejected",
+  cancelled: "Cancelled",
 };
 
 export const STATUS_BADGE_VARIANT: Record<RequisitionStatus, "default" | "secondary" | "destructive" | "success" | "warning"> = {
@@ -29,6 +30,7 @@ export const STATUS_BADGE_VARIANT: Record<RequisitionStatus, "default" | "second
   paid_posted: "success",
   returned: "destructive",
   rejected: "destructive",
+  cancelled: "destructive",
 };
 
 export function stageKeyForStatus(status: RequisitionStatus): "department" | "finance" | "director" | "payment" | null {
