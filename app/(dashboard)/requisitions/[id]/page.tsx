@@ -197,6 +197,10 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         (f) =>
           f.section === key &&
           f.field_key !== "supporting_documents" &&
+          // The requisition's actual status is now set automatically by the
+          // workflow engine end-to-end, making this separate manually-set
+          // field redundant and confusing at the Payment Processing stage.
+          f.field_key !== "payment_status" &&
           (!restrictToRequesterView || f.is_visible),
       )
       .map((f) => ({

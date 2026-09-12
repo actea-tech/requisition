@@ -128,9 +128,22 @@ function Field({ label, value }: { label: string; value: string | number | null 
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  title,
+  children,
+  trailingMargin = true,
+}: {
+  title: string;
+  children: ReactNode;
+  /** False for the last section on the page (Approval History): react-pdf
+   * factors a node's marginBottom into whether it "fits" before deciding to
+   * paginate, so a trailing margin with nothing after it but the fixed
+   * footer can push an otherwise-fitting block onto the next page whole,
+   * instead of just rendering it here. */
+  trailingMargin?: boolean;
+}) {
   return (
-    <View style={styles.section}>
+    <View style={trailingMargin ? styles.section : [styles.section, { marginBottom: 0 }]}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {children}
     </View>
@@ -202,7 +215,7 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
           </Section>
         )}
 
-        <Section title="Approval History">
+        <Section title="Approval History" trailingMargin={false}>
           {/* wrap={false} on every row: without it, react-pdf treats a row
               that straddles a page boundary as word-splittable text and can
               end up fitting none of its cells, which cascades up into
