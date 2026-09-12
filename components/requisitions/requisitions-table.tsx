@@ -43,8 +43,14 @@ export function RequisitionsTable({ rows }: { rows: RequisitionListRow[] }) {
                 {/* Stretched link: covers the whole row (position:relative
                     on TableRow), so clicking anywhere in the row navigates,
                     not just this cell's text. */}
-                <Link href={`/requisitions/${row.id}`} className="absolute inset-0" aria-label={row.requisition_number ?? "Draft"} />
-                <div className="font-medium">{row.requisition_number ?? "Draft"}</div>
+                <Link
+                  href={`/requisitions/${row.id}`}
+                  className="absolute inset-0"
+                  aria-label={row.requisition_number ?? (row.status === "draft" ? "Draft" : "Pending number")}
+                />
+                <div className="font-medium">
+                  {row.requisition_number ?? (row.status === "draft" ? "Draft" : "Pending number")}
+                </div>
                 {row.purpose ? (
                   <div className="max-w-xs truncate text-xs text-muted-foreground">{row.purpose}</div>
                 ) : null}
