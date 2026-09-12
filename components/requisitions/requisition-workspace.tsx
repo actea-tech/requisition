@@ -17,6 +17,7 @@ import { AttachmentsPanel, type AttachmentRow } from "@/components/requisitions/
 import { FinanceGroupPanel } from "@/components/requisitions/finance-group-panel";
 import { AuthorizerGroupPanel } from "@/components/requisitions/authorizer-group-panel";
 import {
+  clearRequisitionAuthorizers,
   completePaymentAction,
   deleteDraftRequisition,
   recordDecisionAction,
@@ -155,6 +156,10 @@ export function RequisitionWorkspace({
       toast.error("Select how you authorized this before approving.");
       return;
     }
+    if (decision === "approved" && permissions.canEditFinance && requiresDirectorAuth === "yes" && authorizerGroup.length === 0) {
+      toast.error("Add at least one authorizer before approving.");
+      return;
+    }
     startTransition(async () => {
       if (permissions.canEditFinance) {
         await updateRequisitionFields(requisition.id, values);
@@ -189,6 +194,9 @@ export function RequisitionWorkspace({
     startTransition(async () => {
       const result = await setRequiresDirectorAuthorizationAction(requisition.id, value);
       if (result.error) toast.error(result.error);
+      if (value === "no" && authorizerGroup.length > 0) {
+        await clearRequisitionAuthorizers(requisition.id);
+      }
     });
   }
 
@@ -291,6 +299,7 @@ export function RequisitionWorkspace({
             members={authorizerGroup}
             candidates={authorizerCandidates}
             requesterId={requesterId}
+            disabled={requiresDirectorAuth === "no"}
           />
         ) : null}
 
@@ -363,13 +372,13 @@ export function RequisitionWorkspace({
                   value={requiresDirectorAuth}
                   onValueChange={(v) => handleSetRequiresDirectorAuth((v ?? "yes") as "yes" | "no")}
                   disabled={isPending}
-                  items={{ yes: "Yes — send to Director", no: "No — clear directly for payment" }}
+                  items={{ yes: "Yes — requires authorization", no: "No — clear directly for payment" }}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="yes">Yes — send to Director</SelectItem>
+                    <SelectItem value="yes">Yes — requires authorization</SelectItem>
                     <SelectItem value="no">No — clear directly for payment</SelectItem>
                   </SelectContent>
                 </Select>
@@ -417,11 +426,18 @@ export function RequisitionWorkspace({
 
                 <Button
                   className="w-full"
-                  disabled={isPending || (permissions.requiresAuthorizationMethodOnApprove && !authorizationMethod)}
+                  disabled={
+                    isPending ||
+                    (permissions.requiresAuthorizationMethodOnApprove && !authorizationMethod) ||
+                    (permissions.canEditFinance && requiresDirectorAuth === "yes" && authorizerGroup.length === 0)
+                  }
                   onClick={() => handleDecision("approved")}
                 >
                   Approve
                 </Button>
+                {permissions.canEditFinance && requiresDirectorAuth === "yes" && authorizerGroup.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Add at least one authorizer before approving.</p>
+                ) : null}
 
                 {previousStageLabel ? (
                   <div className="space-y-2 rounded-md border p-2.5">

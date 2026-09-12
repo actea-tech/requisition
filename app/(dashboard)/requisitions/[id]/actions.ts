@@ -163,6 +163,17 @@ export async function removeRequisitionAuthorizer(requisitionId: string, userId:
   revalidatePath(`/requisitions/${requisitionId}`);
 }
 
+// Switching "Requires authorization?" back to No means any authorizers
+// already selected are no longer relevant — clear them so a later switch
+// back to Yes starts from an empty, deliberate selection rather than
+// stale picks.
+export async function clearRequisitionAuthorizers(requisitionId: string) {
+  await requireProfile();
+  const supabase = await createClient();
+  await supabase.from("requisition_authorizers").delete().eq("requisition_id", requisitionId);
+  revalidatePath(`/requisitions/${requisitionId}`);
+}
+
 export async function deleteAttachment(attachmentId: string, storagePath: string, requisitionId: string) {
   await requireProfile();
   const supabase = await createClient();

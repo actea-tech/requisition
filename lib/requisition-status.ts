@@ -4,7 +4,7 @@ export const STATUS_STEPS: { status: RequisitionStatus; label: string }[] = [
   { status: "draft", label: "Draft" },
   { status: "dept_review", label: "Department Review" },
   { status: "finance_review", label: "Finance Review" },
-  { status: "director_review", label: "Director Authorization" },
+  { status: "director_review", label: "Authorization" },
   { status: "approved_for_payment", label: "Payment Processing" },
   { status: "paid_posted", label: "Paid / Posted" },
 ];
@@ -13,7 +13,7 @@ export const STATUS_LABELS: Record<RequisitionStatus, string> = {
   draft: "Draft",
   dept_review: "Department Review",
   finance_review: "Finance Review",
-  director_review: "Director Authorization",
+  director_review: "Authorization",
   approved_for_payment: "Payment Processing",
   paid_posted: "Paid / Posted",
   returned: "Returned for Correction",

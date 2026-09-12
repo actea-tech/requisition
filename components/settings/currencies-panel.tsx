@@ -30,8 +30,8 @@ export function CurrenciesPanel({ currencies }: { currencies: string[] }) {
       <CardHeader>
         <CardTitle>Currencies</CardTitle>
         <CardDescription>
-          Used across the requisition form and Director authorization thresholds. Add or remove the currencies
-          your organization raises requisitions in.
+          Used across the requisition form and approval thresholds. Add or remove the currencies your
+          organization raises requisitions in.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
