@@ -8,6 +8,7 @@ export type UserRole =
   | "staff"
   | "dept_head"
   | "finance_accountant"
+  | "finance_assistant"
   | "finance_reviewer"
   | "director"
   | "board"
@@ -223,6 +224,18 @@ export interface Database {
         Row: { requisition_id: string; user_id: string; added_by: string | null; created_at: string };
         Insert: { requisition_id: string; user_id: string; added_by?: string | null };
         Update: Partial<{ requisition_id: string; user_id: string }>;
+        Relationships: [];
+      };
+      finance_assistant_thresholds: {
+        Row: { currency: string; threshold_amount: number; updated_at: string };
+        Insert: { currency: string; threshold_amount: number };
+        Update: Partial<{ threshold_amount: number }>;
+        Relationships: [];
+      };
+      finance_assistant_forwards: {
+        Row: { requisition_id: string; assistant_id: string; forwarded_by: string | null; created_at: string };
+        Insert: { requisition_id: string; assistant_id: string; forwarded_by?: string | null };
+        Update: never;
         Relationships: [];
       };
       requisition_attachments: {

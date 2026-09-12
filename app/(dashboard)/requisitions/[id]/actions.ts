@@ -174,6 +174,27 @@ export async function clearRequisitionAuthorizers(requisitionId: string) {
   revalidatePath(`/requisitions/${requisitionId}`);
 }
 
+// Single-active-forward semantics: forwarding replaces any prior forward
+// for this requisition rather than stacking up multiple targets, so the
+// UI can stay a one-click "forward to X" control instead of a picker list.
+export async function forwardToAssistant(requisitionId: string, assistantId: string) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  await supabase.from("finance_assistant_forwards").delete().eq("requisition_id", requisitionId);
+  const { error } = await supabase
+    .from("finance_assistant_forwards")
+    .insert({ requisition_id: requisitionId, assistant_id: assistantId, forwarded_by: profile.id });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
+export async function unforwardFromAssistant(requisitionId: string) {
+  await requireProfile();
+  const supabase = await createClient();
+  await supabase.from("finance_assistant_forwards").delete().eq("requisition_id", requisitionId);
+  revalidatePath(`/requisitions/${requisitionId}`);
+}
+
 export async function deleteAttachment(attachmentId: string, storagePath: string, requisitionId: string) {
   await requireProfile();
   const supabase = await createClient();

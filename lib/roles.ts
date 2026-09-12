@@ -4,6 +4,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   staff: "Staff",
   dept_head: "Department Head",
   finance_accountant: "Finance Accountant",
+  finance_assistant: "Assistant Finance Accountant",
   finance_reviewer: "Finance Reviewer",
   director: "Director",
   board: "Board Member",
@@ -16,7 +17,7 @@ export const ROLE_OPTIONS = Object.entries(ROLE_LABELS).map(([value, label]) => 
 }));
 
 export function isFinanceRole(role: UserRole) {
-  return role === "finance_accountant" || role === "finance_reviewer";
+  return role === "finance_accountant" || role === "finance_assistant" || role === "finance_reviewer";
 }
 
 export function canAccessSettings(role: UserRole) {

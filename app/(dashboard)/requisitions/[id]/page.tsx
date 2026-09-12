@@ -38,6 +38,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: authorizersRaw },
     { data: authorizerPoolRaw },
     { data: authorizationMethodsRaw },
+    { data: assistantForwardsRaw },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -60,6 +61,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     supabase.from("requisition_authorizers").select("user_id").eq("requisition_id", id),
     supabase.from("authorizer_pool").select("user_id"),
     supabase.from("authorization_methods").select("id, label").order("sort_order"),
+    supabase.from("finance_assistant_forwards").select("assistant_id").eq("requisition_id", id),
   ]);
 
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
@@ -205,7 +207,12 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   }));
 
   const financeCandidates = (allProfiles ?? [])
-    .filter((p) => p.is_active && p.id !== profile.id && (p.role === "finance_accountant" || p.role === "finance_reviewer"))
+    .filter(
+      (p) =>
+        p.is_active &&
+        p.id !== profile.id &&
+        (p.role === "finance_accountant" || p.role === "finance_reviewer" || p.role === "finance_assistant"),
+    )
     .map((p) => ({ id: p.id, full_name: p.full_name }));
 
   const authorizerGroup = (authorizersRaw ?? []).map((m) => ({
@@ -219,6 +226,12 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     .map((p) => ({ id: p.id, full_name: p.full_name }));
 
   const authorizationMethodOptions = (authorizationMethodsRaw ?? []).map((m) => ({ value: m.label, label: m.label }));
+
+  const assistantCandidates = (allProfiles ?? [])
+    .filter((p) => p.is_active && p.id !== profile.id && p.role === "finance_assistant")
+    .map((p) => ({ id: p.id, full_name: p.full_name }));
+
+  const forwardedAssistantId = assistantForwardsRaw?.[0]?.assistant_id ?? null;
 
   return (
     <RequisitionWorkspace
@@ -246,6 +259,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       authorizerCandidates={authorizerCandidates}
       requesterId={requisition.requester_id}
       authorizationMethodOptions={authorizationMethodOptions}
+      assistantCandidates={assistantCandidates}
+      forwardedAssistantId={forwardedAssistantId}
     />
   );
 }
