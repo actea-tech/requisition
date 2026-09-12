@@ -4,7 +4,14 @@
 // and diff it against this file — column names/types here should match.
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export type UserRole = "staff" | "dept_head" | "finance_accountant" | "finance_reviewer" | "director" | "admin";
+export type UserRole =
+  | "staff"
+  | "dept_head"
+  | "finance_accountant"
+  | "finance_reviewer"
+  | "director"
+  | "board"
+  | "admin";
 export type ApprovalMode = "first_approver" | "all_approvers" | "quorum";
 export type ApprovalStageKey = "department" | "finance" | "director" | "payment";
 export type ApprovalDecision = "submitted" | "approved" | "returned" | "rejected" | "completed";
@@ -249,10 +256,29 @@ export interface Database {
           actor_id: string;
           decision: ApprovalDecision;
           comments: string | null;
+          authorization_method: string | null;
           created_at: string;
         };
         Insert: never;
         Update: never;
+        Relationships: [];
+      };
+      authorizer_pool: {
+        Row: { user_id: string; added_by: string | null; created_at: string };
+        Insert: { user_id: string; added_by?: string | null };
+        Update: never;
+        Relationships: [];
+      };
+      requisition_authorizers: {
+        Row: { requisition_id: string; user_id: string; added_by: string | null; created_at: string };
+        Insert: { requisition_id: string; user_id: string; added_by?: string | null };
+        Update: never;
+        Relationships: [];
+      };
+      authorization_methods: {
+        Row: { id: string; label: string; sort_order: number; created_at: string };
+        Insert: { id?: string; label: string; sort_order?: number };
+        Update: Partial<{ label: string; sort_order: number }>;
         Relationships: [];
       };
       email_templates: {
@@ -310,6 +336,7 @@ export interface Database {
           p_comments?: string | null;
           p_return_to?: "requester" | "previous_stage";
           p_requires_reapproval?: boolean;
+          p_authorization_method?: string | null;
         };
         Returns: void;
       };

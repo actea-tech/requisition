@@ -15,6 +15,7 @@ import { StatusBadge } from "@/components/requisitions/status-badge";
 import { ApprovalHistory, type HistoryEntry } from "@/components/requisitions/approval-history";
 import { AttachmentsPanel, type AttachmentRow } from "@/components/requisitions/attachments-panel";
 import { FinanceGroupPanel } from "@/components/requisitions/finance-group-panel";
+import { AuthorizerGroupPanel } from "@/components/requisitions/authorizer-group-panel";
 import {
   completePaymentAction,
   deleteDraftRequisition,
@@ -57,6 +58,10 @@ export function RequisitionWorkspace({
   financeCandidates,
   previousStageLabel,
   currencyOptions,
+  authorizerGroup,
+  authorizerCandidates,
+  requesterId,
+  authorizationMethodOptions,
 }: {
   requisition: RequisitionRowForForm;
   sections: SectionSpec[];
@@ -71,11 +76,17 @@ export function RequisitionWorkspace({
     canSetDirectorAuthorization: boolean;
     canEditFinalProcessing: boolean;
     canUploadAttachments: boolean;
+    canManageAuthorizers: boolean;
+    requiresAuthorizationMethodOnApprove: boolean;
     isOwnerDraft: boolean;
   };
   financeGroup: { id: string; full_name: string }[];
   financeCandidates: { id: string; full_name: string }[];
   previousStageLabel: string | null;
+  authorizerGroup: { id: string; full_name: string }[];
+  authorizerCandidates: { id: string; full_name: string }[];
+  requesterId: string;
+  authorizationMethodOptions: { value: string; label: string }[];
 }) {
   const router = useRouter();
   const [returnTo, setReturnTo] = useState<"requester" | "previous_stage">("requester");
@@ -94,6 +105,7 @@ export function RequisitionWorkspace({
     return initial;
   });
   const [comment, setComment] = useState("");
+  const [authorizationMethod, setAuthorizationMethod] = useState("");
   const [isPending, startTransition] = useTransition();
 
   function setField(key: string, value: string) {
@@ -139,6 +151,10 @@ export function RequisitionWorkspace({
       toast.error("A comment is required when returning or rejecting.");
       return;
     }
+    if (decision === "approved" && permissions.requiresAuthorizationMethodOnApprove && !authorizationMethod) {
+      toast.error("Select how you authorized this before approving.");
+      return;
+    }
     startTransition(async () => {
       if (permissions.canEditFinance) {
         await updateRequisitionFields(requisition.id, values);
@@ -157,6 +173,7 @@ export function RequisitionWorkspace({
         comment.trim() || null,
         decision === "returned" ? returnTo : "requester",
         decision === "returned" ? requiresReapproval : true,
+        decision === "approved" ? authorizationMethod || null : null,
       );
       if (result.error) toast.error(result.error);
       else {
@@ -268,6 +285,15 @@ export function RequisitionWorkspace({
           <FinanceGroupPanel requisitionId={requisition.id} members={financeGroup} candidates={financeCandidates} />
         ) : null}
 
+        {permissions.canManageAuthorizers ? (
+          <AuthorizerGroupPanel
+            requisitionId={requisition.id}
+            members={authorizerGroup}
+            candidates={authorizerCandidates}
+            requesterId={requesterId}
+          />
+        ) : null}
+
         <ApprovalHistory entries={history} />
       </div>
 
@@ -332,7 +358,7 @@ export function RequisitionWorkspace({
 
             {permissions.canSetDirectorAuthorization ? (
               <div className="space-y-2 rounded-md border p-2.5">
-                <Label className="text-xs">Requires Director authorization?</Label>
+                <Label className="text-xs">Requires authorization?</Label>
                 <Select
                   value={requiresDirectorAuth}
                   onValueChange={(v) => handleSetRequiresDirectorAuth((v ?? "yes") as "yes" | "no")}
@@ -365,7 +391,35 @@ export function RequisitionWorkspace({
                     Save Finance fields
                   </Button>
                 ) : null}
-                <Button className="w-full" disabled={isPending} onClick={() => handleDecision("approved")}>
+
+                {permissions.requiresAuthorizationMethodOnApprove ? (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">How did you authorize this?</Label>
+                    <Select
+                      value={authorizationMethod || undefined}
+                      onValueChange={(v) => setAuthorizationMethod(v ?? "")}
+                      disabled={isPending}
+                      items={Object.fromEntries(authorizationMethodOptions.map((o) => [o.value, o.label]))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {authorizationMethodOptions.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                <Button
+                  className="w-full"
+                  disabled={isPending || (permissions.requiresAuthorizationMethodOnApprove && !authorizationMethod)}
+                  onClick={() => handleDecision("approved")}
+                >
                   Approve
                 </Button>
 

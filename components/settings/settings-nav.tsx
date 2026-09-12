@@ -10,6 +10,7 @@ const TABS = [
   { href: "/settings/form-fields", label: "Form Fields" },
   { href: "/settings/currencies", label: "Currencies" },
   { href: "/settings/approval-rules", label: "Approval Rules" },
+  { href: "/settings/authorizers", label: "Authorizers" },
 ];
 
 export function SettingsNav() {

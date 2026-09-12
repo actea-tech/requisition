@@ -82,6 +82,7 @@ export async function recordDecisionAction(
   comments: string | null,
   returnTo: "requester" | "previous_stage" = "requester",
   requiresReapproval: boolean = true,
+  authorizationMethod: string | null = null,
 ) {
   const profile = await requireProfile();
   const supabase = await createClient();
@@ -92,6 +93,7 @@ export async function recordDecisionAction(
     p_comments: comments,
     p_return_to: returnTo,
     p_requires_reapproval: requiresReapproval,
+    p_authorization_method: authorizationMethod,
   });
   revalidatePath(`/requisitions/${requisitionId}`);
   return { error: error?.message ?? null };
@@ -141,6 +143,23 @@ export async function removeFinanceApprover(requisitionId: string, userId: strin
   await requireProfile();
   const supabase = await createClient();
   await supabase.from("finance_approver_group").delete().eq("requisition_id", requisitionId).eq("user_id", userId);
+  revalidatePath(`/requisitions/${requisitionId}`);
+}
+
+export async function addRequisitionAuthorizer(requisitionId: string, userId: string) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("requisition_authorizers")
+    .insert({ requisition_id: requisitionId, user_id: userId, added_by: profile.id });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
+export async function removeRequisitionAuthorizer(requisitionId: string, userId: string) {
+  await requireProfile();
+  const supabase = await createClient();
+  await supabase.from("requisition_authorizers").delete().eq("requisition_id", requisitionId).eq("user_id", userId);
   revalidatePath(`/requisitions/${requisitionId}`);
 }
 
