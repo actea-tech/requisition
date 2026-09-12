@@ -195,6 +195,12 @@ export async function forwardToAssistant(requisitionId: string, assistantId: str
   const { error } = await supabase
     .from("finance_assistant_forwards")
     .insert({ requisition_id: requisitionId, assistant_id: assistantId, forwarded_by: profile.id });
+  if (!error) {
+    await supabase.rpc("notify_assistant_forwarded", {
+      p_requisition_id: requisitionId,
+      p_assistant_id: assistantId,
+    });
+  }
   revalidatePath(`/requisitions/${requisitionId}`);
   return { error: error?.message ?? null };
 }

@@ -384,6 +384,10 @@ export interface Database {
         Args: { p_requisition_id: string; p_actor_id: string; p_approve: boolean };
         Returns: void;
       };
+      notify_assistant_forwarded: {
+        Args: { p_requisition_id: string; p_assistant_id: string };
+        Returns: void;
+      };
       clear_must_change_password: { Args: Record<string, never>; Returns: void };
       enqueue_email: {
         Args: {
