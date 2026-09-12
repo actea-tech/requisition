@@ -252,6 +252,7 @@ export interface Database {
           file_name: string;
           file_size: number | null;
           section: FormSection;
+          description: string | null;
           created_at: string;
         };
         Insert: {
@@ -262,6 +263,7 @@ export interface Database {
           file_name: string;
           file_size?: number | null;
           section?: FormSection;
+          description?: string | null;
         };
         Update: Partial<{ file_name: string }>;
         Relationships: [];
