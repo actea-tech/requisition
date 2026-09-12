@@ -1,6 +1,19 @@
 import type { ReactNode } from "react";
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 
+// Mirrors components/requisitions/approval-history.tsx's STAGE_LABELS — the
+// PDF has its own copy of this history table rather than sharing the
+// component, so it needs the same rename applied independently. Plain
+// `textTransform: capitalize` on the raw stage_key previously showed the
+// singleton Director-authorization stage as "Director" here even after the
+// in-app card was renamed to "Authorization".
+const STAGE_LABELS: Record<string, string> = {
+  department: "Department",
+  finance: "Finance",
+  director: "Authorization",
+  payment: "Payment Processing",
+};
+
 const BRAND = {
   blue: "#1E49BA",
   red: "#E4302B",
@@ -57,7 +70,7 @@ const styles = StyleSheet.create({
   historyHeaderRow: { flexDirection: "row", paddingBottom: 6, borderBottom: `1 solid ${BRAND.border}` },
   historyHeaderText: { fontSize: 8, fontWeight: 700, color: BRAND.text },
   historyRow: { flexDirection: "row", borderBottom: `1 solid ${BRAND.border}`, paddingVertical: 7 },
-  historyStage: { width: 85, textTransform: "capitalize" },
+  historyStage: { width: 85 },
   historyDecision: { width: 75, textTransform: "capitalize" },
   historyActor: { width: 115 },
   historyDate: { width: 80 },
@@ -199,7 +212,7 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
           </View>
           {data.history.map((h, i) => (
             <View key={i} style={styles.historyRow}>
-              <Text style={styles.historyStage}>{h.stage_key}</Text>
+              <Text style={styles.historyStage}>{STAGE_LABELS[h.stage_key] ?? h.stage_key}</Text>
               <Text style={styles.historyDecision}>{h.decision}</Text>
               <Text style={styles.historyActor}>{h.actorName}</Text>
               <Text style={styles.historyDate}>{new Date(h.created_at).toLocaleDateString()}</Text>
