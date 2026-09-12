@@ -4,9 +4,18 @@
 
 export type TemplatePayload = Record<string, unknown>;
 
-function escapeHtml(value: unknown): string {
+function formatValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  return String(value)
+  // Payload numbers (amount, threshold amounts, etc.) come through as real
+  // JSON numbers from jsonb_build_object — text fields like voucher/QBO
+  // reference numbers don't, so this only ever grouping-formats genuine
+  // numeric amounts, not reference strings that happen to look numeric.
+  if (typeof value === "number") return value.toLocaleString("en-US");
+  return String(value);
+}
+
+function escapeHtml(value: unknown): string {
+  return formatValue(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
