@@ -7,7 +7,10 @@ const STAGE_LABELS: Record<ApprovalStageKey, string> = {
   department: "Department",
   finance: "Finance",
   director: "Authorization",
-  payment: "Payment Processing",
+  // The 'payment' stage's action is completing payment processing, but it's
+  // still Finance (Accountant/Assistant) doing it — the audit trail labels
+  // by team/actor, not by the specific action, matching 'finance' above.
+  payment: "Finance",
 };
 
 const DECISION_LABELS: Record<ApprovalDecision, string> = {

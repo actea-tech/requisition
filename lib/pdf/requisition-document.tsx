@@ -11,7 +11,7 @@ const STAGE_LABELS: Record<string, string> = {
   department: "Department",
   finance: "Finance",
   director: "Authorization",
-  payment: "Payment Processing",
+  payment: "Finance",
 };
 
 const BRAND = {
