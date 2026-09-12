@@ -203,7 +203,13 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
         )}
 
         <Section title="Approval History">
-          <View style={styles.historyHeaderRow}>
+          {/* wrap={false} on every row: without it, react-pdf treats a row
+              that straddles a page boundary as word-splittable text and can
+              end up fitting none of its cells, which cascades up into
+              moving the *entire* section (title, header, and every row) to
+              the next page instead of just the rows that don't fit. Marking
+              rows atomic lets it break cleanly between whole rows. */}
+          <View style={styles.historyHeaderRow} wrap={false}>
             <Text style={[styles.historyHeaderText, styles.historyStage]}>Stage</Text>
             <Text style={[styles.historyHeaderText, styles.historyDecision]}>Decision</Text>
             <Text style={[styles.historyHeaderText, styles.historyActor]}>Actor</Text>
@@ -211,7 +217,7 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
             <Text style={[styles.historyHeaderText, styles.historyComments]}>Comments</Text>
           </View>
           {data.history.map((h, i) => (
-            <View key={i} style={styles.historyRow}>
+            <View key={i} style={styles.historyRow} wrap={false}>
               <Text style={styles.historyStage}>{STAGE_LABELS[h.stage_key] ?? h.stage_key}</Text>
               <Text style={styles.historyDecision}>{h.decision}</Text>
               <Text style={styles.historyActor}>{h.actorName}</Text>
