@@ -236,7 +236,9 @@ export function RequisitionWorkspace({
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-semibold">{requisition.requisition_number ?? "Draft requisition"}</h1>
+            <h1 className="text-2xl font-semibold">
+              {requisition.requisition_number ?? (requisition.status === "draft" ? "Draft requisition" : "Pending number")}
+            </h1>
             <p className="text-sm text-muted-foreground">
               {requisition.requesterName} &middot; {requisition.departmentName}
             </p>
