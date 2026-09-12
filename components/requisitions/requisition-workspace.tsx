@@ -16,6 +16,7 @@ import { ApprovalHistory, type HistoryEntry } from "@/components/requisitions/ap
 import { AttachmentsPanel, type AttachmentRow } from "@/components/requisitions/attachments-panel";
 import { FinanceGroupPanel } from "@/components/requisitions/finance-group-panel";
 import { AuthorizerGroupPanel } from "@/components/requisitions/authorizer-group-panel";
+import { AssistantForwardControl } from "@/components/requisitions/assistant-forward-control";
 import {
   clearRequisitionAuthorizers,
   completePaymentAction,
@@ -63,6 +64,8 @@ export function RequisitionWorkspace({
   authorizerCandidates,
   requesterId,
   authorizationMethodOptions,
+  assistantCandidates,
+  forwardedAssistantId,
 }: {
   requisition: RequisitionRowForForm;
   sections: SectionSpec[];
@@ -88,6 +91,8 @@ export function RequisitionWorkspace({
   authorizerCandidates: { id: string; full_name: string }[];
   requesterId: string;
   authorizationMethodOptions: { value: string; label: string }[];
+  assistantCandidates: { id: string; full_name: string }[];
+  forwardedAssistantId: string | null;
 }) {
   const router = useRouter();
   const [returnTo, setReturnTo] = useState<"requester" | "previous_stage">("requester");
@@ -291,6 +296,14 @@ export function RequisitionWorkspace({
 
         {permissions.canManageFinanceGroup ? (
           <FinanceGroupPanel requisitionId={requisition.id} members={financeGroup} candidates={financeCandidates} />
+        ) : null}
+
+        {permissions.canManageFinanceGroup ? (
+          <AssistantForwardControl
+            requisitionId={requisition.id}
+            candidates={assistantCandidates}
+            forwardedAssistantId={forwardedAssistantId}
+          />
         ) : null}
 
         {permissions.canManageAuthorizers ? (
