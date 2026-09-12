@@ -35,6 +35,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: department },
     { data: directorAuthModeRow },
     { data: currenciesRaw },
+    { data: authorizersRaw },
+    { data: authorizerPoolRaw },
+    { data: authorizationMethodsRaw },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -54,6 +57,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     supabase.from("departments").select("name").eq("id", requisition.department_id).single(),
     supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
     supabase.from("currencies").select("code").order("code"),
+    supabase.from("requisition_authorizers").select("user_id").eq("requisition_id", id),
+    supabase.from("authorizer_pool").select("user_id"),
+    supabase.from("authorization_methods").select("id, label").order("sort_order"),
   ]);
 
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
@@ -114,6 +120,11 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     stageKey === "finance" && directorAuthMode === "accountant_discretion" && (isAdmin || profile.role === "finance_accountant");
   const canEditFinalProcessing =
     stageKey === "payment" && (isAdmin || requisition.finance_accountant_id === profile.id);
+  // Reachable at either stage: a requisition may already be at
+  // director_review with nobody yet selected (Finance-direct type).
+  const canManageAuthorizers =
+    (stageKey === "finance" || stageKey === "director") && (isAdmin || profile.role === "finance_accountant");
+  const requiresAuthorizationMethodOnApprove = stageKey === "director";
 
   // The requester's own edit-then-submit/resubmit flow — draft, or
   // returned straight back to them (not redirected to a previous stage).
@@ -197,6 +208,18 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     .filter((p) => p.is_active && p.id !== profile.id && (p.role === "finance_accountant" || p.role === "finance_reviewer"))
     .map((p) => ({ id: p.id, full_name: p.full_name }));
 
+  const authorizerGroup = (authorizersRaw ?? []).map((m) => ({
+    id: m.user_id,
+    full_name: nameFor(m.user_id),
+  }));
+
+  const authorizerPoolIds = new Set((authorizerPoolRaw ?? []).map((m) => m.user_id));
+  const authorizerCandidates = (allProfiles ?? [])
+    .filter((p) => p.is_active && p.id !== profile.id && (p.role === "director" || authorizerPoolIds.has(p.id)))
+    .map((p) => ({ id: p.id, full_name: p.full_name }));
+
+  const authorizationMethodOptions = (authorizationMethodsRaw ?? []).map((m) => ({ value: m.label, label: m.label }));
+
   return (
     <RequisitionWorkspace
       requisition={requisitionForForm}
@@ -211,12 +234,18 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canSetDirectorAuthorization,
         canEditFinalProcessing,
         canUploadAttachments,
+        canManageAuthorizers,
+        requiresAuthorizationMethodOnApprove,
         isOwnerDraft: canEditDraftFields,
       }}
       financeGroup={financeGroup}
       financeCandidates={financeCandidates}
       previousStageLabel={previousStageLabel}
       currencyOptions={currencyOptions}
+      authorizerGroup={authorizerGroup}
+      authorizerCandidates={authorizerCandidates}
+      requesterId={requisition.requester_id}
+      authorizationMethodOptions={authorizationMethodOptions}
     />
   );
 }

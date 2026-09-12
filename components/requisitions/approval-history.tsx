@@ -6,7 +6,7 @@ import type { ApprovalDecision, ApprovalStageKey } from "@/lib/supabase/database
 const STAGE_LABELS: Record<ApprovalStageKey, string> = {
   department: "Department",
   finance: "Finance",
-  director: "Director",
+  director: "Authorization",
   payment: "Payment Processing",
 };
 

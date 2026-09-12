@@ -48,9 +48,9 @@ export function DirectorAuthorizationCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Director authorization requirement</CardTitle>
+        <CardTitle>Authorization requirement</CardTitle>
         <CardDescription>
-          Decides whether a requisition needs Director sign-off after Finance clears it, or can go straight to
+          Decides whether a requisition needs authorization after Finance clears it, or can go straight to
           payment.
         </CardDescription>
       </CardHeader>
@@ -77,8 +77,8 @@ export function DirectorAuthorizationCard({
           <div className="space-y-2 border-t pt-4">
             <p className="text-sm font-medium">Thresholds by currency</p>
             <p className="text-xs text-muted-foreground">
-              At or above the threshold, Director authorization is required. A currency with no threshold set
-              here always requires the Director.
+              At or above the threshold, authorization is required. A currency with no threshold set here
+              always requires authorization.
             </p>
 
             {thresholds.length === 0 ? (
