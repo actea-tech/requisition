@@ -30,6 +30,17 @@ export async function setMinAuthorizerCount(count: number) {
   return { error: error?.message ?? null };
 }
 
+export async function setAssistantFinanceDirectRouting(value: "direct" | "requires_accountant_approval") {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .update({ value })
+    .eq("key", "assistant_finance_direct_routing");
+  revalidatePath("/settings/authorizers");
+  return { error: error?.message ?? null };
+}
+
 export async function createAuthorizationMethod(label: string) {
   await requireAdmin();
   const supabase = await createClient();

@@ -15,7 +15,7 @@ export type UserRole =
   | "admin";
 export type ApprovalMode = "first_approver" | "all_approvers" | "quorum";
 export type ApprovalStageKey = "department" | "finance" | "director" | "payment";
-export type ApprovalDecision = "submitted" | "approved" | "returned" | "rejected" | "completed";
+export type ApprovalDecision = "submitted" | "approved" | "returned" | "rejected" | "completed" | "cancelled";
 export type RequisitionStatus =
   | "draft"
   | "dept_review"
@@ -24,8 +24,10 @@ export type RequisitionStatus =
   | "approved_for_payment"
   | "paid_posted"
   | "returned"
-  | "rejected";
-export type RequisitionScope = "departmental" | "individual";
+  | "rejected"
+  | "cancelled";
+export type CancellationStatus = "requested" | "approved" | "denied";
+export type RequisitionScope = "departmental" | "individual" | "finance_direct";
 export type YesNo = "yes" | "no";
 export type YesNoUnsure = "yes" | "no" | "not_sure";
 export type EmailStatus = "pending" | "sent" | "failed";
@@ -166,6 +168,9 @@ export interface Database {
           return_reason: string | null;
           return_to: "requester" | "previous_stage";
           requires_reapproval: boolean;
+          cancellation_status: CancellationStatus | null;
+          cancellation_reason: string | null;
+          cancellation_requested_by: string | null;
           stage_entered_at: string;
           submitted_at: string | null;
           created_at: string;
@@ -361,6 +366,22 @@ export interface Database {
       get_pending_approval_requisition_ids: { Args: { p_user_id: string }; Returns: string[] };
       set_requires_director_authorization: {
         Args: { p_requisition_id: string; p_actor_id: string; p_value: YesNo };
+        Returns: void;
+      };
+      add_requisition_authorizer: {
+        Args: { p_requisition_id: string; p_actor_id: string; p_user_id: string };
+        Returns: void;
+      };
+      remove_requisition_authorizer: {
+        Args: { p_requisition_id: string; p_actor_id: string; p_user_id: string };
+        Returns: void;
+      };
+      cancel_requisition: {
+        Args: { p_requisition_id: string; p_actor_id: string; p_reason: string };
+        Returns: void;
+      };
+      decide_cancellation: {
+        Args: { p_requisition_id: string; p_actor_id: string; p_approve: boolean };
         Returns: void;
       };
       clear_must_change_password: { Args: Record<string, never>; Returns: void };

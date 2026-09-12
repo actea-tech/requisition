@@ -146,21 +146,32 @@ export async function removeFinanceApprover(requisitionId: string, userId: strin
   revalidatePath(`/requisitions/${requisitionId}`);
 }
 
+// Routed through RPCs (not a plain insert/delete) — adding one after the
+// stage already resolved (requisition at Payment Processing) needs to
+// reopen it for authorization, and removing one needs to re-check whether
+// whoever's left has already fully approved. See migration 0034.
 export async function addRequisitionAuthorizer(requisitionId: string, userId: string) {
   const profile = await requireProfile();
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("requisition_authorizers")
-    .insert({ requisition_id: requisitionId, user_id: userId, added_by: profile.id });
+  const { error } = await supabase.rpc("add_requisition_authorizer", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+    p_user_id: userId,
+  });
   revalidatePath(`/requisitions/${requisitionId}`);
   return { error: error?.message ?? null };
 }
 
 export async function removeRequisitionAuthorizer(requisitionId: string, userId: string) {
-  await requireProfile();
+  const profile = await requireProfile();
   const supabase = await createClient();
-  await supabase.from("requisition_authorizers").delete().eq("requisition_id", requisitionId).eq("user_id", userId);
+  const { error } = await supabase.rpc("remove_requisition_authorizer", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+    p_user_id: userId,
+  });
   revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
 }
 
 // Switching "Requires authorization?" back to No means any authorizers
@@ -193,6 +204,30 @@ export async function unforwardFromAssistant(requisitionId: string) {
   const supabase = await createClient();
   await supabase.from("finance_assistant_forwards").delete().eq("requisition_id", requisitionId);
   revalidatePath(`/requisitions/${requisitionId}`);
+}
+
+export async function cancelRequisitionAction(requisitionId: string, reason: string) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_requisition", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+    p_reason: reason,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
+export async function decideCancellationAction(requisitionId: string, approve: boolean) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("decide_cancellation", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+    p_approve: approve,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
 }
 
 export async function deleteAttachment(attachmentId: string, storagePath: string, requisitionId: string) {
