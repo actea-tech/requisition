@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
   const file = formData.get("file") as File | null;
   const requisitionId = String(formData.get("requisitionId") ?? "");
   const section = String(formData.get("section") ?? "compliance_and_support");
+  const description = String(formData.get("description") ?? "").trim() || null;
 
   if (!file || file.size === 0 || !requisitionId) {
     return NextResponse.json({ error: "file and requisitionId are required" }, { status: 400 });
@@ -36,8 +37,9 @@ export async function POST(request: NextRequest) {
       file_name: file.name,
       file_size: file.size,
       section: section as Database["public"]["Tables"]["requisition_attachments"]["Row"]["section"],
+      description,
     })
-    .select("id, file_name, file_size, storage_path")
+    .select("id, file_name, file_size, storage_path, description")
     .single();
 
   if (insertError) {

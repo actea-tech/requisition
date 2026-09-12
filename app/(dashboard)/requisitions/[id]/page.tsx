@@ -47,7 +47,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       .order("sort_order"),
     supabase
       .from("requisition_attachments")
-      .select("id, file_name, file_size, storage_path, uploaded_by")
+      .select("id, file_name, file_size, storage_path, uploaded_by, section, description")
       .eq("requisition_id", id),
     supabase
       .from("approval_actions")
@@ -72,6 +72,10 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
 
   const isOwner = requisition.requester_id === profile.id;
   const isAdmin = profile.role === "admin";
+  // A Finance Accountant forwarding to their Assistant is full delegation —
+  // the Assistant should be able to do anything the Accountant could for
+  // this specific requisition, not just approve/reject it.
+  const isForwardedAssistant = (assistantForwardsRaw?.[0]?.assistant_id ?? null) === profile.id;
 
   // A "return to previous stage" targets that stage's approver(s) — treat
   // them exactly as if the requisition were back at that stage (same
@@ -117,12 +121,22 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const canEditFinance = stageKey === "finance" && isEligibleApprover;
   // Only the accountant role manages who else reviews — not every eligible
   // finance approver (which would let an added Finance Reviewer add more).
-  const canManageFinanceGroup = stageKey === "finance" && (isAdmin || profile.role === "finance_accountant");
+  // A forwarded Assistant is a full stand-in for the Accountant on this
+  // requisition, so they get the same right.
+  const canManageFinanceGroup =
+    stageKey === "finance" && (isAdmin || profile.role === "finance_accountant" || isForwardedAssistant);
   const directorAuthMode = directorAuthModeRow?.value === "amount_threshold" ? "amount_threshold" : "accountant_discretion";
   const canSetDirectorAuthorization =
-    stageKey === "finance" && directorAuthMode === "accountant_discretion" && (isAdmin || profile.role === "finance_accountant");
+    stageKey === "finance" &&
+    directorAuthMode === "accountant_discretion" &&
+    (isAdmin || profile.role === "finance_accountant" || isForwardedAssistant);
+  // Any active Accountant/Assistant can pick up Payment Processing — not
+  // only whoever is recorded as finance_accountant_id — matching the
+  // broadened get_pending_approval_requisition_ids (migration 0042). That
+  // RPC/RLS pairing is the actual gate; this is just the UI reflecting it.
   const canEditFinalProcessing =
-    stageKey === "payment" && (isAdmin || requisition.finance_accountant_id === profile.id);
+    stageKey === "payment" &&
+    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant");
   // Reachable at either stage: a requisition may already be at
   // director_review with nobody yet selected (Finance-direct type).
   // Deliberately broader than canManageFinanceGroup — includes the
@@ -199,13 +213,30 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     departmentName: department?.name ?? "—",
   };
 
-  const attachments = (attachmentsRaw ?? []).map((a) => ({
-    id: a.id,
-    file_name: a.file_name,
-    file_size: a.file_size,
-    storage_path: a.storage_path,
-    uploaderName: nameFor(a.uploaded_by),
-  }));
+  // Payment-stage supporting documents (post-authorization) get their own
+  // section/card, separate from the requester's own supporting documents —
+  // reusing the existing final_processing form_section value rather than a
+  // new enum, since it already exists for exactly this part of the form.
+  const attachments = (attachmentsRaw ?? [])
+    .filter((a) => a.section !== "final_processing")
+    .map((a) => ({
+      id: a.id,
+      file_name: a.file_name,
+      file_size: a.file_size,
+      storage_path: a.storage_path,
+      description: a.description,
+      uploaderName: nameFor(a.uploaded_by),
+    }));
+  const paymentAttachments = (attachmentsRaw ?? [])
+    .filter((a) => a.section === "final_processing")
+    .map((a) => ({
+      id: a.id,
+      file_name: a.file_name,
+      file_size: a.file_size,
+      storage_path: a.storage_path,
+      description: a.description,
+      uploaderName: nameFor(a.uploaded_by),
+    }));
 
   const history = (historyRaw ?? []).map((h) => ({
     id: h.id,
@@ -262,6 +293,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       requisition={requisitionForForm}
       sections={sections}
       attachments={attachments}
+      paymentAttachments={paymentAttachments}
       history={history}
       permissions={{
         canEditDraftFields,

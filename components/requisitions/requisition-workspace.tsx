@@ -58,6 +58,7 @@ export function RequisitionWorkspace({
   requisition,
   sections,
   attachments,
+  paymentAttachments,
   history,
   permissions,
   financeGroup,
@@ -75,6 +76,7 @@ export function RequisitionWorkspace({
   requisition: RequisitionRowForForm;
   sections: SectionSpec[];
   attachments: AttachmentRow[];
+  paymentAttachments: AttachmentRow[];
   history: HistoryEntry[];
   currencyOptions: { value: string; label: string }[];
   permissions: {
@@ -347,6 +349,18 @@ export function RequisitionWorkspace({
           canUpload={permissions.canUploadAttachments}
           canDelete={permissions.isOwnerDraft}
         />
+
+        {permissions.canEditFinalProcessing || paymentAttachments.length > 0 ? (
+          <AttachmentsPanel
+            requisitionId={requisition.id}
+            attachments={paymentAttachments}
+            canUpload={permissions.canEditFinalProcessing}
+            canDelete={permissions.canEditFinalProcessing}
+            title="Payment processing documents"
+            section="final_processing"
+            withDescription
+          />
+        ) : null}
 
         {permissions.canManageFinanceGroup ? (
           <FinanceGroupPanel requisitionId={requisition.id} members={financeGroup} candidates={financeCandidates} />
