@@ -12,6 +12,7 @@ type RequisitionUpdate = Database["public"]["Tables"]["requisitions"]["Update"];
 // keeps the Server Action from forwarding stray keys.
 const EDITABLE_FIELDS = [
   "requisition_type",
+  "requisition_kind",
   "purpose",
   "activity_project",
   "payee_name",
@@ -255,6 +256,44 @@ export async function deleteAttachment(attachmentId: string, storagePath: string
   await supabase.storage.from("requisition-attachments").remove([storagePath]);
   await supabase.from("requisition_attachments").delete().eq("id", attachmentId);
   revalidatePath(`/requisitions/${requisitionId}`);
+}
+
+export async function deleteExpenditure(expenditureId: string, storagePath: string | null, requisitionId: string) {
+  await requireProfile();
+  const supabase = await createClient();
+  if (storagePath) await supabase.storage.from("requisition-attachments").remove([storagePath]);
+  await supabase.from("requisition_expenditures").delete().eq("id", expenditureId);
+  revalidatePath(`/requisitions/${requisitionId}`);
+}
+
+export async function submitRequisitionAccountingAction(requisitionId: string) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("submit_requisition_accounting", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
+export async function reviewRequisitionAccountingAction(
+  requisitionId: string,
+  approve: boolean,
+  comments: string | null,
+  shortfallNote: string | null,
+) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("review_requisition_accounting", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+    p_approve: approve,
+    p_comments: comments,
+    p_shortfall_note: shortfallNote,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
 }
 
 export async function getAttachmentSignedUrl(storagePath: string) {

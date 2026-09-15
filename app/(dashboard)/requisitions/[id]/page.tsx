@@ -40,6 +40,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: authorizerPoolRaw },
     { data: authorizationMethodsRaw },
     { data: assistantForwardsRaw },
+    { data: expendituresRaw },
     { data: paymentCancellationSettingRow },
   ] = await Promise.all([
     supabase
@@ -64,6 +65,11 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     supabase.from("authorizer_pool").select("user_id"),
     supabase.from("authorization_methods").select("id, label").order("sort_order"),
     supabase.from("finance_assistant_forwards").select("assistant_id").eq("requisition_id", id),
+    supabase
+      .from("requisition_expenditures")
+      .select("id, entry_type, description, amount, storage_path")
+      .eq("requisition_id", id)
+      .order("created_at"),
     supabase.from("app_settings").select("value").eq("key", "payment_stage_cancellation_enabled").maybeSingle(),
   ]);
 
@@ -169,6 +175,17 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     !["paid_posted", "posted_and_closed", "cancelled"].includes(requisition.status) &&
     (requisition.status !== "approved_for_payment" || paymentStageCancellationEnabled);
   const canDecideCancellation = (isAdmin || profile.role === "director") && requisition.cancellation_status === "requested";
+
+  // Fund requisitions only: the requester accounts for how the disbursed
+  // funds were spent once it's Paid, Finance reviews it, and only then does
+  // it reach Posted & Closed. Orthogonal to requisition_type (routing).
+  const isFundRequisition = requisition.requisition_kind === "fund";
+  const canEditExpenditures = isOwner && isFundRequisition && requisition.status === "paid_posted";
+  const showExpenditurePanel =
+    isFundRequisition && ["paid_posted", "accounting_review", "posted_and_closed"].includes(requisition.status);
+  const canReviewAccounting =
+    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
+    requisition.status === "accounting_review";
 
   // The requester's own edit-then-submit/resubmit flow — draft, or
   // returned straight back to them (not redirected to a previous stage).
@@ -297,6 +314,14 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
 
   const forwardedAssistantId = assistantForwardsRaw?.[0]?.assistant_id ?? null;
 
+  const expenditures = (expendituresRaw ?? []).map((e) => ({
+    id: e.id,
+    entry_type: e.entry_type,
+    description: e.description,
+    amount: e.amount,
+    storage_path: e.storage_path,
+  }));
+
   // "Finance (direct to authorization)" is only offered to requesters who
   // can actually route straight past both review stages — everyone else
   // still only sees Departmental/Individual.
@@ -313,6 +338,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       attachments={attachments}
       paymentAttachments={paymentAttachments}
       history={history}
+      expenditures={expenditures}
       permissions={{
         canEditDraftFields,
         canDecide,
@@ -326,6 +352,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         requiresAuthorizationMethodOnApprove,
         canCancelRequisition,
         canDecideCancellation,
+        canEditExpenditures,
+        showExpenditurePanel,
+        canReviewAccounting,
         isOwnerDraft: canEditDraftFields,
       }}
       financeGroup={financeGroup}
