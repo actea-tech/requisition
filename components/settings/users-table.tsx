@@ -19,7 +19,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteUser, resetUserPassword, setUserActive, updateUserRole } from "@/app/(dashboard)/settings/users/actions";
+import {
+  deleteUser,
+  resetUserPassword,
+  setUserActive,
+  setUserTestMode,
+  updateUserRole,
+} from "@/app/(dashboard)/settings/users/actions";
 import { ROLE_OPTIONS } from "@/lib/roles";
 import type { UserRole } from "@/lib/supabase/database.types";
 
@@ -30,6 +36,7 @@ interface UserRow {
   role: UserRole;
   department_id: string | null;
   is_active: boolean;
+  is_test_user: boolean;
   must_change_password: boolean;
 }
 
@@ -49,6 +56,7 @@ export function UsersTable({
           <TableHead>Department</TableHead>
           <TableHead>Account setup</TableHead>
           <TableHead>Active</TableHead>
+          <TableHead>Test mode</TableHead>
           <TableHead className="w-20" />
         </TableRow>
       </TableHeader>
@@ -159,6 +167,16 @@ function UserTableRow({
             onCheckedChange={(checked) => startTransition(() => setUserActive(user.id, checked))}
           />
           {!user.is_active ? <Badge variant="secondary">Disabled</Badge> : null}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={user.is_test_user}
+            disabled={isPending}
+            onCheckedChange={(checked) => startTransition(() => setUserTestMode(user.id, checked))}
+          />
+          {user.is_test_user ? <Badge variant="secondary">Test</Badge> : null}
         </div>
       </TableCell>
       <TableCell>

@@ -8,7 +8,7 @@ export default async function UsersSettingsPage() {
   const [{ data: users }, { data: departments }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, email, role, department_id, is_active, must_change_password")
+      .select("id, full_name, email, role, department_id, is_active, is_test_user, must_change_password")
       .order("full_name"),
     supabase.from("departments").select("id, name").eq("is_active", true).order("name"),
   ]);

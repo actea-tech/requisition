@@ -57,7 +57,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       .eq("requisition_id", id)
       .order("created_at"),
     supabase.from("finance_approver_group").select("user_id").eq("requisition_id", id),
-    supabase.from("profiles").select("id, full_name, role, is_active"),
+    supabase.from("profiles").select("id, full_name, role, is_active, is_test_user"),
     supabase.from("departments").select("name").eq("id", requisition.department_id).single(),
     supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
     supabase.from("currencies").select("code").order("code"),
@@ -296,6 +296,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       (p) =>
         p.is_active &&
         p.id !== profile.id &&
+        p.is_test_user === requisition.is_test &&
         (p.role === "finance_accountant" || p.role === "finance_reviewer" || p.role === "finance_assistant"),
     )
     .map((p) => ({ id: p.id, full_name: p.full_name }));
@@ -307,13 +308,21 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
 
   const authorizerPoolIds = new Set((authorizerPoolRaw ?? []).map((m) => m.user_id));
   const authorizerCandidates = (allProfiles ?? [])
-    .filter((p) => p.is_active && p.id !== profile.id && (p.role === "director" || authorizerPoolIds.has(p.id)))
+    .filter(
+      (p) =>
+        p.is_active &&
+        p.id !== profile.id &&
+        p.is_test_user === requisition.is_test &&
+        (p.role === "director" || authorizerPoolIds.has(p.id)),
+    )
     .map((p) => ({ id: p.id, full_name: p.full_name }));
 
   const authorizationMethodOptions = (authorizationMethodsRaw ?? []).map((m) => ({ value: m.label, label: m.label }));
 
   const assistantCandidates = (allProfiles ?? [])
-    .filter((p) => p.is_active && p.id !== profile.id && p.role === "finance_assistant")
+    .filter(
+      (p) => p.is_active && p.id !== profile.id && p.is_test_user === requisition.is_test && p.role === "finance_assistant",
+    )
     .map((p) => ({ id: p.id, full_name: p.full_name }));
 
   const forwardedAssistantId = assistantForwardsRaw?.[0]?.assistant_id ?? null;

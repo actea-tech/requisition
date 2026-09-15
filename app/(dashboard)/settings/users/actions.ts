@@ -74,6 +74,13 @@ export async function setUserActive(userId: string, isActive: boolean) {
   revalidatePath("/settings/users");
 }
 
+export async function setUserTestMode(userId: string, isTestUser: boolean) {
+  await requireAdmin();
+  const supabaseAdmin = createAdminClient();
+  await supabaseAdmin.from("profiles").update({ is_test_user: isTestUser }).eq("id", userId);
+  revalidatePath("/settings/users");
+}
+
 // Covers both cases from the same mechanism — generate a fresh temp
 // password, force must_change_password back on, email it — since neither
 // the account_invite flow's original temp password nor a forgotten one is
