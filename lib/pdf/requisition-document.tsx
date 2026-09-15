@@ -212,9 +212,9 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
         </Section>
 
         <Section title="Payment Details">
+          <Field label="Amount" value={data.amount != null ? `${data.currency} ${data.amount.toLocaleString()}` : null} />
           <Field label="Payee" value={data.payee_name} />
           <Field label="Payee contact" value={data.payee_contact} />
-          <Field label="Amount" value={data.amount != null ? `${data.currency} ${data.amount.toLocaleString()}` : null} />
           <Field label="Payment mode" value={data.payment_mode} />
           <Field label="Payment mode details" value={data.payment_mode_details} />
         </Section>
