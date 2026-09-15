@@ -14,7 +14,7 @@ export function navItemsForRole(role: UserRole): NavItem[] {
     { href: "/requisitions", label: "My Requisitions", icon: "list" },
     // Fund requisitions specifically at the accounting stage — the same
     // tab as My Requisitions' "Accounting" tab, just reachable directly.
-    { href: "/requisitions?tab=accounting", label: "Accounting", icon: "receipt" },
+    { href: "/requisitions?tab=accounting", label: "Needs My Accounting", icon: "receipt" },
   ];
 
   // Shown to everyone, not just non-"staff" roles: a department head's
