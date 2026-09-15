@@ -51,3 +51,26 @@ export async function deleteDirectorAuthThreshold(currency: string) {
   await supabase.from("director_auth_thresholds").delete().eq("currency", currency);
   revalidatePath("/settings/approval-rules");
 }
+
+// A currency with no row here means the Assistant isn't eligible via
+// threshold for it at all — only forwarding grants them a specific
+// requisition in that case (see get_eligible_approver_ids, migration
+// 0029). Deleting a threshold is how a currency gets "disabled".
+export async function upsertFinanceAssistantThreshold(currency: string, thresholdAmount: number) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("finance_assistant_thresholds")
+    .upsert({ currency, threshold_amount: thresholdAmount }, { onConflict: "currency" });
+
+  revalidatePath("/settings/approval-rules");
+  return { error: error?.message ?? null };
+}
+
+export async function deleteFinanceAssistantThreshold(currency: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("finance_assistant_thresholds").delete().eq("currency", currency);
+  revalidatePath("/settings/approval-rules");
+}
