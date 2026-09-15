@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { StageModeCard } from "@/components/settings/stage-mode-card";
 import { DirectorAuthorizationCard } from "@/components/settings/director-authorization-card";
 import { FinanceAssistantThresholdCard } from "@/components/settings/finance-assistant-threshold-card";
+import { PaymentStageCancellationCard } from "@/components/settings/payment-stage-cancellation-card";
 
 export default async function ApprovalRulesSettingsPage() {
   const supabase = await createClient();
@@ -11,17 +12,20 @@ export default async function ApprovalRulesSettingsPage() {
     { data: thresholds },
     { data: assistantThresholds },
     { data: currenciesRaw },
+    { data: paymentCancellationRow },
   ] = await Promise.all([
     supabase.from("approval_stage_config").select("stage_key, mode, quorum_count").is("department_id", null),
     supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
     supabase.from("director_auth_thresholds").select("currency, threshold_amount").order("currency"),
     supabase.from("finance_assistant_thresholds").select("currency, threshold_amount").order("currency"),
     supabase.from("currencies").select("code").order("code"),
+    supabase.from("app_settings").select("value").eq("key", "payment_stage_cancellation_enabled").maybeSingle(),
   ]);
 
   const financeConfig = config?.find((c) => c.stage_key === "finance");
   const directorAuthMode = directorAuthModeRow?.value === "amount_threshold" ? "amount_threshold" : "accountant_discretion";
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
+  const paymentStageCancellationEnabled = paymentCancellationRow?.value === "yes";
 
   return (
     <div className="space-y-4">
@@ -46,6 +50,8 @@ export default async function ApprovalRulesSettingsPage() {
       />
 
       <FinanceAssistantThresholdCard thresholds={assistantThresholds ?? []} currencyOptions={currencyOptions} />
+
+      <PaymentStageCancellationCard initialEnabled={paymentStageCancellationEnabled} />
     </div>
   );
 }
