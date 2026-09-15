@@ -85,6 +85,24 @@ export function AuditFiltersForm({ departments }: { departments: { id: string; n
       </div>
 
       <div className="space-y-1.5">
+        <Label>Mode</Label>
+        <Select
+          value={searchParams.get("mode") ?? "all"}
+          onValueChange={(v) => update("mode", v === "all" ? "" : (v ?? ""))}
+          items={{ all: "All", production: "Production", test: "Test" }}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="production">Production</SelectItem>
+            <SelectItem value="test">Test</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="from">From</Label>
         <Input
           id="from"

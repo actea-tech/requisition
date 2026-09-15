@@ -7,6 +7,7 @@ export interface AuditFilters {
   fromDate?: string;
   toDate?: string;
   requisitionNumber?: string;
+  mode?: "test" | "production";
 }
 
 export function parseAuditFilters(searchParams: Record<string, string | string[] | undefined>): AuditFilters {
@@ -21,6 +22,7 @@ export function parseAuditFilters(searchParams: Record<string, string | string[]
     fromDate: get("from") || undefined,
     toDate: get("to") || undefined,
     requisitionNumber: get("q") || undefined,
+    mode: (get("mode") as "test" | "production") || undefined,
   };
 }
 
@@ -141,6 +143,7 @@ export async function queryAuditRows(supabase: SupabaseClient<Database>, filters
   if (filters.fromDate) query = query.gte("created_at", filters.fromDate);
   if (filters.toDate) query = query.lte("created_at", `${filters.toDate}T23:59:59`);
   if (filters.requisitionNumber) query = query.ilike("requisition_number", `%${filters.requisitionNumber}%`);
+  if (filters.mode) query = query.eq("is_test", filters.mode === "test");
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
