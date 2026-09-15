@@ -14,6 +14,20 @@ const STAGE_LABELS: Record<string, string> = {
   payment: "Finance",
 };
 
+// Mirrors components/requisitions/approval-history.tsx's DECISION_LABELS —
+// same reasoning as STAGE_LABELS above, plus 'posted_and_closed' would
+// otherwise render as "Posted_and_closed" under the plain capitalize
+// transform (it only capitalizes each whitespace-separated word).
+const DECISION_LABELS: Record<string, string> = {
+  submitted: "Submitted",
+  approved: "Approved",
+  returned: "Returned",
+  rejected: "Rejected",
+  completed: "Paid",
+  cancelled: "Cancelled",
+  posted_and_closed: "Posted & closed",
+};
+
 const BRAND = {
   blue: "#1E49BA",
   red: "#E4302B",
@@ -71,7 +85,7 @@ const styles = StyleSheet.create({
   historyHeaderText: { fontSize: 8, fontWeight: 700, color: BRAND.text },
   historyRow: { flexDirection: "row", borderBottom: `1 solid ${BRAND.border}`, paddingVertical: 7 },
   historyStage: { width: 85 },
-  historyDecision: { width: 75, textTransform: "capitalize" },
+  historyDecision: { width: 75 },
   historyActor: { width: 115 },
   historyDate: { width: 80 },
   historyComments: { flex: 1 },
@@ -116,7 +130,7 @@ export interface RequisitionPdfData {
   }[];
   generatedAt: string;
   logoSrc: string | null;
-  status: "paid_posted" | "rejected";
+  status: "posted_and_closed" | "rejected";
 }
 
 function Field({ label, value }: { label: string; value: string | number | null | undefined }) {
@@ -173,7 +187,7 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
               ]}
             >
               <Text style={[styles.statusPillText, { color: isRejected ? BRAND.destructive : BRAND.success }]}>
-                {isRejected ? "Rejected" : "Paid / Posted"}
+                {isRejected ? "Rejected" : "Posted & Closed"}
               </Text>
             </View>
           </View>
@@ -232,7 +246,7 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
           {data.history.map((h, i) => (
             <View key={i} style={styles.historyRow} wrap={false}>
               <Text style={styles.historyStage}>{STAGE_LABELS[h.stage_key] ?? h.stage_key}</Text>
-              <Text style={styles.historyDecision}>{h.decision}</Text>
+              <Text style={styles.historyDecision}>{DECISION_LABELS[h.decision] ?? h.decision}</Text>
               <Text style={styles.historyActor}>{h.actorName}</Text>
               <Text style={styles.historyDate}>{new Date(h.created_at).toLocaleDateString()}</Text>
               <Text style={styles.historyComments}>{h.comments ?? ""}</Text>

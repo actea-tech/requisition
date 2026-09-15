@@ -15,7 +15,14 @@ export type UserRole =
   | "admin";
 export type ApprovalMode = "first_approver" | "all_approvers" | "quorum";
 export type ApprovalStageKey = "department" | "finance" | "director" | "payment";
-export type ApprovalDecision = "submitted" | "approved" | "returned" | "rejected" | "completed" | "cancelled";
+export type ApprovalDecision =
+  | "submitted"
+  | "approved"
+  | "returned"
+  | "rejected"
+  | "completed"
+  | "cancelled"
+  | "posted_and_closed";
 export type RequisitionStatus =
   | "draft"
   | "dept_review"
@@ -23,6 +30,7 @@ export type RequisitionStatus =
   | "director_review"
   | "approved_for_payment"
   | "paid_posted"
+  | "posted_and_closed"
   | "returned"
   | "rejected"
   | "cancelled";
@@ -361,6 +369,10 @@ export interface Database {
         Returns: void;
       };
       complete_payment_processing: {
+        Args: { p_requisition_id: string; p_actor_id: string; p_comments?: string | null };
+        Returns: void;
+      };
+      mark_posted_and_closed: {
         Args: { p_requisition_id: string; p_actor_id: string; p_comments?: string | null };
         Returns: void;
       };

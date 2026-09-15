@@ -6,7 +6,8 @@ export const STATUS_STEPS: { status: RequisitionStatus; label: string }[] = [
   { status: "finance_review", label: "Finance Review" },
   { status: "director_review", label: "Authorization" },
   { status: "approved_for_payment", label: "Payment Processing" },
-  { status: "paid_posted", label: "Paid / Posted" },
+  { status: "paid_posted", label: "Paid" },
+  { status: "posted_and_closed", label: "Posted & Closed" },
 ];
 
 export const STATUS_LABELS: Record<RequisitionStatus, string> = {
@@ -15,7 +16,8 @@ export const STATUS_LABELS: Record<RequisitionStatus, string> = {
   finance_review: "Finance Review",
   director_review: "Authorization",
   approved_for_payment: "Payment Processing",
-  paid_posted: "Paid / Posted",
+  paid_posted: "Paid",
+  posted_and_closed: "Posted & Closed",
   returned: "Returned for Correction",
   rejected: "Rejected",
   cancelled: "Cancelled",
@@ -27,7 +29,8 @@ export const STATUS_BADGE_VARIANT: Record<RequisitionStatus, "default" | "second
   finance_review: "warning",
   director_review: "warning",
   approved_for_payment: "warning",
-  paid_posted: "success",
+  paid_posted: "warning",
+  posted_and_closed: "success",
   returned: "destructive",
   rejected: "destructive",
   cancelled: "destructive",

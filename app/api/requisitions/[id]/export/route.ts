@@ -21,9 +21,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Requisition not found" }, { status: 404 });
   }
 
-  if (requisition.status !== "paid_posted" && requisition.status !== "rejected") {
+  if (requisition.status !== "posted_and_closed" && requisition.status !== "rejected") {
     return NextResponse.json(
-      { error: "Export is only available for paid/posted or rejected requisitions." },
+      { error: "Export is only available for posted/closed or rejected requisitions." },
       { status: 400 },
     );
   }

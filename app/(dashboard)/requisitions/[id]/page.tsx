@@ -137,6 +137,13 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const canEditFinalProcessing =
     stageKey === "payment" &&
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant");
+  // Second, separate step after marking Paid — the Accountant may
+  // legitimately wait on further bank documents before actually posting to
+  // QBO and closing it out, so this isn't folded into canEditFinalProcessing
+  // above (which only applies while still at approved_for_payment).
+  const canMarkPostedAndClosed =
+    requisition.status === "paid_posted" &&
+    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant");
   // Reachable at either stage: a requisition may already be at
   // director_review with nobody yet selected (Finance-direct type).
   // Deliberately broader than canManageFinanceGroup — includes the
@@ -154,7 +161,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // 0036.
   const canCancelRequisition =
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
-    !["paid_posted", "cancelled"].includes(requisition.status);
+    !["paid_posted", "posted_and_closed", "cancelled"].includes(requisition.status);
   const canDecideCancellation = (isAdmin || profile.role === "director") && requisition.cancellation_status === "requested";
 
   // The requester's own edit-then-submit/resubmit flow — draft, or
@@ -176,7 +183,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // requester-facing convenience only — from department head upward,
   // everyone sees every field (still not editable unless it's their turn),
   // per the current requirements.
-  const restrictToRequesterView = isOwner && !canDecide && !canEditFinance && !canEditFinalProcessing && !isAdmin;
+  const restrictToRequesterView =
+    isOwner && !canDecide && !canEditFinance && !canEditFinalProcessing && !canMarkPostedAndClosed && !isAdmin;
   const REQUESTER_VISIBLE_SECTIONS = new Set<FormSection>(["request_details", "payment_details"]);
 
   const sections: SectionSpec[] = SECTION_DEFS.filter(
@@ -306,6 +314,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canManageFinanceGroup,
         canSetDirectorAuthorization,
         canEditFinalProcessing,
+        canMarkPostedAndClosed,
         canUploadAttachments,
         canManageAuthorizers,
         requiresAuthorizationMethodOnApprove,
