@@ -70,6 +70,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     donor_grant_source: requisition.donor_grant_source,
     payment_voucher_number: requisition.payment_voucher_number,
     qbo_posting_reference: requisition.qbo_posting_reference,
+    payment_reference: requisition.payment_reference,
     submitted_at: requisition.submitted_at,
     history: (historyRaw ?? []).map((h) => ({
       stage_key: h.stage_key,

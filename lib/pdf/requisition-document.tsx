@@ -123,6 +123,7 @@ export interface RequisitionPdfData {
   donor_grant_source: string | null;
   payment_voucher_number: string | null;
   qbo_posting_reference: string | null;
+  payment_reference: string | null;
   submitted_at: string | null;
   history: {
     stage_key: string;
@@ -229,6 +230,7 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
           <Section title="Final Processing">
             <Field label="Payment voucher number" value={data.payment_voucher_number} />
             <Field label="QBO posting reference" value={data.qbo_posting_reference} />
+            <Field label="Payment reference" value={data.payment_reference} />
           </Section>
         )}
 
