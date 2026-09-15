@@ -30,6 +30,9 @@ export default async function MyRequisitionsPage({
   if (tab === "draft") query = query.in("status", ["draft", "returned"]);
   else if (tab === "active") query = query.in("status", ["dept_review", "finance_review", "director_review", "approved_for_payment"]);
   else if (tab === "done") query = query.in("status", ["paid_posted", "posted_and_closed", "rejected"]);
+  // Reachable from the dashboard's "Needs your accounting" card when there's
+  // more than one — not a persistent tab (niche to Fund requisitions).
+  else if (tab === "needs_accounting") query = query.eq("status", "paid_posted").eq("requisition_kind", "fund");
 
   const [{ data: requisitions }, { data: department }] = await Promise.all([
     query,

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   deleteExpenditure,
   getAttachmentSignedUrl,
+  sendAccountingReminderAction,
   submitRequisitionAccountingAction,
 } from "@/app/(dashboard)/requisitions/[id]/actions";
 
@@ -30,6 +31,7 @@ export function ExpenditureAccountingPanel({
   expenditures,
   canEdit,
   canSubmit,
+  canSendReminder,
 }: {
   requisitionId: string;
   amount: number | null;
@@ -39,6 +41,8 @@ export function ExpenditureAccountingPanel({
   canEdit: boolean;
   /** canEdit, plus at least one expense line already added. */
   canSubmit: boolean;
+  /** Finance, while the requester hasn't submitted yet. */
+  canSendReminder: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -103,8 +107,16 @@ export function ExpenditureAccountingPanel({
     if (url) window.open(url, "_blank", "noopener,noreferrer");
   }
 
+  function handleSendReminder() {
+    startTransition(async () => {
+      const result = await sendAccountingReminderAction(requisitionId);
+      if (result.error) toast.error(result.error);
+      else toast.success("Reminder sent");
+    });
+  }
+
   return (
-    <Card>
+    <Card id="expenditure-accounting">
       <CardHeader>
         <CardTitle className="text-base">Expenditure accounting</CardTitle>
         <CardDescription>
@@ -217,6 +229,12 @@ export function ExpenditureAccountingPanel({
               Submit accounting
             </Button>
           </div>
+        ) : null}
+
+        {canSendReminder ? (
+          <Button variant="outline" className="w-full" disabled={isPending} onClick={handleSendReminder}>
+            Send reminder to requester
+          </Button>
         ) : null}
       </CardContent>
     </Card>

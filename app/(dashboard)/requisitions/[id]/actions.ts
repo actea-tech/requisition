@@ -296,6 +296,16 @@ export async function reviewRequisitionAccountingAction(
   return { error: error?.message ?? null };
 }
 
+export async function sendAccountingReminderAction(requisitionId: string) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("send_accounting_reminder", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+  });
+  return { error: error?.message ?? null };
+}
+
 export async function getAttachmentSignedUrl(storagePath: string) {
   const supabase = await createClient();
   const { data } = await supabase.storage

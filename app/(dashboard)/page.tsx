@@ -9,19 +9,34 @@ export default async function DashboardHome() {
   const profile = await requireProfile();
   const supabase = await createClient();
 
-  const [{ count: myCount }, { data: pendingIds }, { count: myActionCount }] = await Promise.all([
-    supabase.from("requisitions").select("id", { count: "exact", head: true }).eq("requester_id", profile.id),
-    supabase.rpc("get_pending_approval_requisition_ids", { p_user_id: profile.id }),
-    // Requisitions returned straight back to them — easy to miss since
-    // nothing else on the dashboard calls it out.
-    supabase
-      .from("requisitions")
-      .select("id", { count: "exact", head: true })
-      .eq("requester_id", profile.id)
-      .eq("status", "returned")
-      .eq("return_to", "requester"),
-  ]);
+  const [{ count: myCount }, { data: pendingIds }, { count: myActionCount }, { data: needsAccountingRows }] =
+    await Promise.all([
+      supabase.from("requisitions").select("id", { count: "exact", head: true }).eq("requester_id", profile.id),
+      supabase.rpc("get_pending_approval_requisition_ids", { p_user_id: profile.id }),
+      // Requisitions returned straight back to them — easy to miss since
+      // nothing else on the dashboard calls it out.
+      supabase
+        .from("requisitions")
+        .select("id", { count: "exact", head: true })
+        .eq("requester_id", profile.id)
+        .eq("status", "returned")
+        .eq("return_to", "requester"),
+      // Fund requisitions they've been paid on but haven't yet accounted for.
+      supabase
+        .from("requisitions")
+        .select("id")
+        .eq("requester_id", profile.id)
+        .eq("requisition_kind", "fund")
+        .eq("status", "paid_posted"),
+    ]);
   const pendingCount = pendingIds?.length ?? 0;
+  const needsAccountingCount = needsAccountingRows?.length ?? 0;
+  // Single outstanding one: jump straight to its Expenditure accounting
+  // section instead of making them find it in the list first.
+  const needsAccountingHref =
+    needsAccountingCount === 1
+      ? `/requisitions/${needsAccountingRows![0].id}#expenditure-accounting`
+      : "/requisitions?tab=needs_accounting";
 
   return (
     <div className="space-y-6">
@@ -73,6 +88,22 @@ export default async function DashboardHome() {
             </CardAction>
           </CardHeader>
         </Card>
+
+        {needsAccountingCount > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                Needs your accounting <Badge variant="destructive">{needsAccountingCount}</Badge>
+              </CardTitle>
+              <CardDescription>Fund requisitions you&apos;ve been paid on — account for how it was spent.</CardDescription>
+              <CardAction>
+                <Button render={<Link href={needsAccountingHref} />} nativeButton={false} size="sm" variant="outline">
+                  Account
+                </Button>
+              </CardAction>
+            </CardHeader>
+          </Card>
+        ) : null}
       </div>
     </div>
   );

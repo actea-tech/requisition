@@ -186,6 +186,10 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const canReviewAccounting =
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
     requisition.status === "accounting_review";
+  const canSendAccountingReminder =
+    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
+    isFundRequisition &&
+    requisition.status === "paid_posted";
 
   // The requester's own edit-then-submit/resubmit flow — draft, or
   // returned straight back to them (not redirected to a previous stage).
@@ -355,6 +359,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canEditExpenditures,
         showExpenditurePanel,
         canReviewAccounting,
+        canSendAccountingReminder,
         isOwnerDraft: canEditDraftFields,
       }}
       financeGroup={financeGroup}
