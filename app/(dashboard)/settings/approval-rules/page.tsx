@@ -1,16 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 import { StageModeCard } from "@/components/settings/stage-mode-card";
 import { DirectorAuthorizationCard } from "@/components/settings/director-authorization-card";
+import { FinanceAssistantThresholdCard } from "@/components/settings/finance-assistant-threshold-card";
 
 export default async function ApprovalRulesSettingsPage() {
   const supabase = await createClient();
-  const [{ data: config }, { data: directorAuthModeRow }, { data: thresholds }, { data: currenciesRaw }] =
-    await Promise.all([
-      supabase.from("approval_stage_config").select("stage_key, mode, quorum_count").is("department_id", null),
-      supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
-      supabase.from("director_auth_thresholds").select("currency, threshold_amount").order("currency"),
-      supabase.from("currencies").select("code").order("code"),
-    ]);
+  const [
+    { data: config },
+    { data: directorAuthModeRow },
+    { data: thresholds },
+    { data: assistantThresholds },
+    { data: currenciesRaw },
+  ] = await Promise.all([
+    supabase.from("approval_stage_config").select("stage_key, mode, quorum_count").is("department_id", null),
+    supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
+    supabase.from("director_auth_thresholds").select("currency, threshold_amount").order("currency"),
+    supabase.from("finance_assistant_thresholds").select("currency, threshold_amount").order("currency"),
+    supabase.from("currencies").select("code").order("code"),
+  ]);
 
   const financeConfig = config?.find((c) => c.stage_key === "finance");
   const directorAuthMode = directorAuthModeRow?.value === "amount_threshold" ? "amount_threshold" : "accountant_discretion";
@@ -37,6 +44,8 @@ export default async function ApprovalRulesSettingsPage() {
         thresholds={thresholds ?? []}
         currencyOptions={currencyOptions}
       />
+
+      <FinanceAssistantThresholdCard thresholds={assistantThresholds ?? []} currencyOptions={currencyOptions} />
     </div>
   );
 }
