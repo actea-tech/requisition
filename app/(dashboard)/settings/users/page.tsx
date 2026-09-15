@@ -19,14 +19,14 @@ export default async function UsersSettingsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <InviteUserDialog departments={departments ?? []} />
-      </div>
       <Tabs defaultValue="production">
-        <TabsList>
-          <TabsTrigger value="production">Production ({productionUsers.length})</TabsTrigger>
-          <TabsTrigger value="test">Test ({testUsers.length})</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between">
+          <InviteUserDialog departments={departments ?? []} />
+          <TabsList>
+            <TabsTrigger value="production">Production ({productionUsers.length})</TabsTrigger>
+            <TabsTrigger value="test">Test ({testUsers.length})</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="production">
           <UsersTable users={productionUsers} departments={departments ?? []} />
         </TabsContent>
