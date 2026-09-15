@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronsUpDown, LogOut, User } from "lucide-react";
 import { signOut } from "@/app/login/actions";
 import {
@@ -39,7 +39,9 @@ export function AppSidebar({
   role: UserRole;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isMobile, setOpenMobile } = useSidebar();
+  const onAccountingTab = pathname === "/requisitions" && searchParams.get("tab") === "accounting";
 
   return (
     <Sidebar collapsible="icon">
@@ -63,7 +65,16 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu className="gap-1.5">
               {items.map((item) => {
-                const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                // "Accounting" shares /requisitions with "My Requisitions" —
+                // disambiguate by the ?tab=accounting query so only one of
+                // the two lights up at a time.
+                const isAccountingItem = item.href.includes("tab=accounting");
+                const isActive =
+                  item.href === "/"
+                    ? pathname === "/"
+                    : isAccountingItem
+                      ? onAccountingTab
+                      : pathname.startsWith(item.href) && !onAccountingTab;
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton

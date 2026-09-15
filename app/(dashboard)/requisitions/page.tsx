@@ -9,6 +9,7 @@ const TABS = [
   { key: "all", label: "All" },
   { key: "draft", label: "Drafts" },
   { key: "active", label: "In Progress" },
+  { key: "accounting", label: "Accounting" },
   { key: "done", label: "Closed" },
 ] as const;
 
@@ -28,11 +29,18 @@ export default async function MyRequisitionsPage({
     .order("created_at", { ascending: false });
 
   if (tab === "draft") query = query.in("status", ["draft", "returned"]);
-  else if (tab === "active") query = query.in("status", ["dept_review", "finance_review", "director_review", "approved_for_payment"]);
-  else if (tab === "done") query = query.in("status", ["paid_posted", "posted_and_closed", "rejected"]);
-  // Reachable from the dashboard's "Needs your accounting" card when there's
-  // more than one — not a persistent tab (niche to Fund requisitions).
-  else if (tab === "needs_accounting") query = query.eq("status", "paid_posted").eq("requisition_kind", "fund");
+  else if (tab === "active")
+    query = query.in("status", ["dept_review", "finance_review", "director_review", "approved_for_payment", "paid_posted"]);
+  // Fund requisitions specifically at the accounting stage — either still
+  // awaiting your own submission (paid_posted) or already submitted and
+  // awaiting Finance's review (accounting_review). Also reachable from the
+  // dashboard's "Needs your accounting" card.
+  else if (tab === "accounting" || tab === "needs_accounting")
+    query = query.eq("requisition_kind", "fund").in("status", ["paid_posted", "accounting_review"]);
+  // paid_posted moved to "active"/"accounting" above — it isn't actually
+  // closed yet (still awaiting either accounting or Finance's Posted &
+  // Closed step), so only genuinely terminal statuses belong here now.
+  else if (tab === "done") query = query.in("status", ["posted_and_closed", "rejected"]);
 
   const [{ data: requisitions }, { data: department }] = await Promise.all([
     query,
