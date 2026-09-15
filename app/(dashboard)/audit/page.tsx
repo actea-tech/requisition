@@ -55,10 +55,18 @@ export default async function AuditPage({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" render={<Link href={`/api/audit/export?format=csv&${exportQuery}`} />}>
+          <Button
+            variant="outline"
+            render={<Link href={`/api/audit/export?format=csv&${exportQuery}`} />}
+            nativeButton={false}
+          >
             Export CSV
           </Button>
-          <Button variant="outline" render={<Link href={`/api/audit/export?format=xlsx&${exportQuery}`} />}>
+          <Button
+            variant="outline"
+            render={<Link href={`/api/audit/export?format=xlsx&${exportQuery}`} />}
+            nativeButton={false}
+          >
             Export XLSX
           </Button>
         </div>

@@ -62,7 +62,9 @@ export default async function MyRequisitionsPage({
           <h1 className="text-2xl font-semibold">My Requisitions</h1>
           <p className="text-sm text-muted-foreground">Everything you&apos;ve submitted, including drafts.</p>
         </div>
-        <Button render={<Link href="/requisitions/new" />}>New requisition</Button>
+        <Button render={<Link href="/requisitions/new" />} nativeButton={false}>
+          New requisition
+        </Button>
       </div>
 
       <div className="flex gap-1 border-b">
