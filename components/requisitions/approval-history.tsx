@@ -21,6 +21,9 @@ const DECISION_LABELS: Record<ApprovalDecision, string> = {
   completed: "Paid",
   cancelled: "Cancelled",
   posted_and_closed: "Posted & closed",
+  accounting_submitted: "Accounting submitted",
+  accounting_approved: "Accounting approved",
+  accounting_returned: "Accounting returned",
 };
 
 const DECISION_VARIANT: Record<ApprovalDecision, "secondary" | "success" | "destructive" | "warning"> = {
@@ -31,6 +34,9 @@ const DECISION_VARIANT: Record<ApprovalDecision, "secondary" | "success" | "dest
   completed: "success",
   cancelled: "destructive",
   posted_and_closed: "success",
+  accounting_submitted: "secondary",
+  accounting_approved: "success",
+  accounting_returned: "warning",
 };
 
 export interface HistoryEntry {

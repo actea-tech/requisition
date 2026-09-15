@@ -1,16 +1,25 @@
 import { Check, X } from "lucide-react";
-import { STATUS_STEPS } from "@/lib/requisition-status";
-import type { RequisitionStatus } from "@/lib/supabase/database.types";
+import { getStatusSteps } from "@/lib/requisition-status";
+import type { RequisitionKind, RequisitionStatus } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
 
-export function StatusStepper({ status, returnedFromStage }: { status: RequisitionStatus; returnedFromStage: RequisitionStatus | null }) {
+export function StatusStepper({
+  status,
+  returnedFromStage,
+  requisitionKind,
+}: {
+  status: RequisitionStatus;
+  returnedFromStage: RequisitionStatus | null;
+  requisitionKind: RequisitionKind;
+}) {
   const isTerminalBad = status === "returned" || status === "rejected";
   const effectiveStatus = isTerminalBad ? (returnedFromStage ?? "draft") : status;
-  const currentIndex = STATUS_STEPS.findIndex((s) => s.status === effectiveStatus);
+  const steps = getStatusSteps(requisitionKind);
+  const currentIndex = steps.findIndex((s) => s.status === effectiveStatus);
 
   return (
     <ol className="space-y-3">
-      {STATUS_STEPS.map((step, index) => {
+      {steps.map((step, index) => {
         const isDone = index < currentIndex || (index === currentIndex && !isTerminalBad && status === "posted_and_closed");
         const isCurrent = index === currentIndex;
 

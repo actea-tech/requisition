@@ -22,7 +22,10 @@ export type ApprovalDecision =
   | "rejected"
   | "completed"
   | "cancelled"
-  | "posted_and_closed";
+  | "posted_and_closed"
+  | "accounting_submitted"
+  | "accounting_approved"
+  | "accounting_returned";
 export type RequisitionStatus =
   | "draft"
   | "dept_review"
@@ -30,12 +33,15 @@ export type RequisitionStatus =
   | "director_review"
   | "approved_for_payment"
   | "paid_posted"
+  | "accounting_review"
   | "posted_and_closed"
   | "returned"
   | "rejected"
   | "cancelled";
 export type CancellationStatus = "requested" | "approved" | "denied";
 export type RequisitionScope = "departmental" | "individual" | "finance_direct";
+export type RequisitionKind = "payment" | "fund";
+export type ExpenditureEntryType = "expense" | "balance_banked";
 export type YesNo = "yes" | "no";
 export type YesNoUnsure = "yes" | "no" | "not_sure";
 export type EmailStatus = "pending" | "sent" | "failed";
@@ -144,6 +150,7 @@ export interface Database {
           requester_id: string;
           department_id: string;
           requisition_type: RequisitionScope;
+          requisition_kind: RequisitionKind;
           status: RequisitionStatus;
           purpose: string | null;
           activity_project: string | null;
@@ -179,6 +186,8 @@ export interface Database {
           cancellation_status: CancellationStatus | null;
           cancellation_reason: string | null;
           cancellation_requested_by: string | null;
+          related_requisition_id: string | null;
+          accounting_shortfall_note: string | null;
           stage_entered_at: string;
           submitted_at: string | null;
           created_at: string;
@@ -230,7 +239,35 @@ export interface Database {
           payment_voucher_number: string | null;
           qbo_posting_reference: string | null;
           payment_status: "pending" | "approved_for_payment" | "paid" | "posted_in_qbo" | "returned";
+          requisition_kind: RequisitionKind;
         }>;
+        Relationships: [];
+      };
+      requisition_expenditures: {
+        Row: {
+          id: string;
+          requisition_id: string;
+          entry_type: ExpenditureEntryType;
+          description: string;
+          amount: number;
+          storage_path: string | null;
+          file_name: string | null;
+          file_size: number | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          requisition_id: string;
+          entry_type?: ExpenditureEntryType;
+          description: string;
+          amount: number;
+          storage_path?: string | null;
+          file_name?: string | null;
+          file_size?: number | null;
+          created_by: string;
+        };
+        Update: never;
         Relationships: [];
       };
       finance_approver_group: {
@@ -374,6 +411,20 @@ export interface Database {
       };
       mark_posted_and_closed: {
         Args: { p_requisition_id: string; p_actor_id: string; p_comments?: string | null };
+        Returns: void;
+      };
+      submit_requisition_accounting: {
+        Args: { p_requisition_id: string; p_actor_id: string };
+        Returns: void;
+      };
+      review_requisition_accounting: {
+        Args: {
+          p_requisition_id: string;
+          p_actor_id: string;
+          p_approve: boolean;
+          p_comments?: string | null;
+          p_shortfall_note?: string | null;
+        };
         Returns: void;
       };
       get_eligible_approver_ids: { Args: { p_requisition_id: string; p_stage_key: ApprovalStageKey }; Returns: string[] };

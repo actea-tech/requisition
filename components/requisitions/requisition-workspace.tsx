@@ -18,6 +18,8 @@ import { FinanceGroupPanel } from "@/components/requisitions/finance-group-panel
 import { AuthorizerGroupPanel } from "@/components/requisitions/authorizer-group-panel";
 import { AssistantForwardControl } from "@/components/requisitions/assistant-forward-control";
 import { CancelRequisitionControl } from "@/components/requisitions/cancel-requisition-control";
+import { ExpenditureAccountingPanel, type ExpenditureRow } from "@/components/requisitions/expenditure-accounting-panel";
+import { AccountingReviewPanel } from "@/components/requisitions/accounting-review-panel";
 import {
   clearRequisitionAuthorizers,
   completePaymentAction,
@@ -30,7 +32,7 @@ import {
   submitRequisitionAction,
   updateRequisitionFields,
 } from "@/app/(dashboard)/requisitions/[id]/actions";
-import type { RequisitionStatus } from "@/lib/supabase/database.types";
+import type { RequisitionKind, RequisitionStatus } from "@/lib/supabase/database.types";
 
 export interface SectionSpec {
   key: string;
@@ -43,10 +45,12 @@ export interface RequisitionRowForForm {
   id: string;
   requisition_number: string | null;
   status: RequisitionStatus;
+  requisition_kind: RequisitionKind;
   returned_from_stage: RequisitionStatus | null;
   return_reason: string | null;
   cancellation_status: "requested" | "approved" | "denied" | null;
   cancellation_reason: string | null;
+  accounting_shortfall_note: string | null;
   amount: number | null;
   currency: string;
   requesterName: string;
@@ -61,6 +65,7 @@ export function RequisitionWorkspace({
   attachments,
   paymentAttachments,
   history,
+  expenditures,
   permissions,
   financeGroup,
   financeCandidates,
@@ -79,6 +84,7 @@ export function RequisitionWorkspace({
   attachments: AttachmentRow[];
   paymentAttachments: AttachmentRow[];
   history: HistoryEntry[];
+  expenditures: ExpenditureRow[];
   currencyOptions: { value: string; label: string }[];
   permissions: {
     canEditDraftFields: boolean;
@@ -93,6 +99,9 @@ export function RequisitionWorkspace({
     requiresAuthorizationMethodOnApprove: boolean;
     canCancelRequisition: boolean;
     canDecideCancellation: boolean;
+    canEditExpenditures: boolean;
+    showExpenditurePanel: boolean;
+    canReviewAccounting: boolean;
     isOwnerDraft: boolean;
   };
   financeGroup: { id: string; full_name: string }[];
@@ -372,6 +381,26 @@ export function RequisitionWorkspace({
           />
         ) : null}
 
+        {permissions.showExpenditurePanel ? (
+          <ExpenditureAccountingPanel
+            requisitionId={requisition.id}
+            amount={requisition.amount}
+            currency={requisition.currency}
+            expenditures={expenditures}
+            canEdit={permissions.canEditExpenditures}
+            canSubmit={permissions.canEditExpenditures}
+          />
+        ) : null}
+
+        {permissions.canReviewAccounting ? (
+          <AccountingReviewPanel
+            requisitionId={requisition.id}
+            amount={requisition.amount}
+            currency={requisition.currency}
+            expenditures={expenditures}
+          />
+        ) : null}
+
         {permissions.canManageFinanceGroup ? (
           <FinanceGroupPanel requisitionId={requisition.id} members={financeGroup} candidates={financeCandidates} />
         ) : null}
@@ -403,7 +432,11 @@ export function RequisitionWorkspace({
             <CardTitle className="text-base">Requisition status</CardTitle>
           </CardHeader>
           <CardContent>
-            <StatusStepper status={requisition.status} returnedFromStage={requisition.returned_from_stage} />
+            <StatusStepper
+              status={requisition.status}
+              returnedFromStage={requisition.returned_from_stage}
+              requisitionKind={requisition.requisition_kind}
+            />
           </CardContent>
         </Card>
 
@@ -606,7 +639,9 @@ export function RequisitionWorkspace({
             !permissions.canSetDirectorAuthorization &&
             !permissions.canEditFinalProcessing &&
             !permissions.canMarkPostedAndClosed &&
-            !permissions.canCancelRequisition ? (
+            !permissions.canCancelRequisition &&
+            !permissions.canEditExpenditures &&
+            !permissions.canReviewAccounting ? (
               <p className="text-sm text-muted-foreground">No action needed from you right now.</p>
             ) : null}
           </CardContent>

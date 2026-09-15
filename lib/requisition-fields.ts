@@ -17,6 +17,11 @@ export const FINANCE_DIRECT_REQUISITION_TYPE = {
   label: "Finance (direct to authorization)",
 };
 
+const REQUISITION_KINDS = [
+  { value: "payment", label: "Payment Requisition" },
+  { value: "fund", label: "Fund Requisition (requires accounting for actual spend)" },
+];
+
 const YES_NO = [
   { value: "yes", label: "Yes" },
   { value: "no", label: "No" },
@@ -41,6 +46,7 @@ const PAYMENT_STATUSES = [
 
 export const FIELD_SPECS: Record<string, FieldSpec> = {
   requisition_type: { type: "select", options: REQUISITION_TYPES },
+  requisition_kind: { type: "select", options: REQUISITION_KINDS },
   purpose: { type: "textarea" },
   activity_project: { type: "text" },
   payee_name: { type: "text" },

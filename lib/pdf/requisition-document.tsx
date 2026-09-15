@@ -26,6 +26,9 @@ const DECISION_LABELS: Record<string, string> = {
   completed: "Paid",
   cancelled: "Cancelled",
   posted_and_closed: "Posted & closed",
+  accounting_submitted: "Accounting submitted",
+  accounting_approved: "Accounting approved",
+  accounting_returned: "Accounting returned",
 };
 
 const BRAND = {
