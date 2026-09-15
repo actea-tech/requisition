@@ -45,6 +45,7 @@ export const AUDIT_COLUMNS = [
   "payment_voucher_number",
   "qbo_posting_reference",
   "payment_status",
+  "payment_reference",
 ] as const;
 
 export const AUDIT_HEADERS = [
@@ -68,6 +69,7 @@ export const AUDIT_HEADERS = [
   "Payment Voucher Number",
   "QBO Posting Reference",
   "Payment Status",
+  "Payment Reference",
 ];
 
 export interface AuditSourceRow {
@@ -91,6 +93,7 @@ export interface AuditSourceRow {
   payment_voucher_number: string | null;
   qbo_posting_reference: string | null;
   payment_status: string;
+  payment_reference: string | null;
 }
 
 export function auditRowToValues(
@@ -120,6 +123,7 @@ export function auditRowToValues(
     r.payment_voucher_number ?? "",
     r.qbo_posting_reference ?? "",
     r.payment_status,
+    r.payment_reference ?? "",
   ];
 }
 
@@ -127,7 +131,7 @@ export async function queryAuditRows(supabase: SupabaseClient<Database>, filters
   let query = supabase
     .from("requisitions")
     .select(
-      "id, requisition_number, created_at, submitted_at, status, requester_id, department_id, purpose, payee_name, amount, currency, payment_mode, budget_line, account_code, project_fund_class_code, donor_grant_source, donor_restriction, budget_available, payment_voucher_number, qbo_posting_reference, payment_status",
+      "id, requisition_number, created_at, submitted_at, status, requester_id, department_id, purpose, payee_name, amount, currency, payment_mode, budget_line, account_code, project_fund_class_code, donor_grant_source, donor_restriction, budget_available, payment_voucher_number, qbo_posting_reference, payment_status, payment_reference",
     )
     .neq("status", "draft")
     .order("created_at", { ascending: false });
