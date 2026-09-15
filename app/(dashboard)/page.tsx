@@ -36,7 +36,7 @@ export default async function DashboardHome() {
   const needsAccountingHref =
     needsAccountingCount === 1
       ? `/requisitions/${needsAccountingRows![0].id}#expenditure-accounting`
-      : "/requisitions?tab=needs_accounting";
+      : "/requisitions?tab=accounting";
 
   return (
     <div className="space-y-6">
