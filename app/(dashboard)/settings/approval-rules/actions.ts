@@ -74,3 +74,16 @@ export async function deleteFinanceAssistantThreshold(currency: string) {
   await supabase.from("finance_assistant_thresholds").delete().eq("currency", currency);
   revalidatePath("/settings/approval-rules");
 }
+
+export async function setPaymentStageCancellationEnabled(enabled: boolean) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("app_settings")
+    .update({ value: enabled ? "yes" : "no" })
+    .eq("key", "payment_stage_cancellation_enabled");
+
+  revalidatePath("/settings/approval-rules");
+  return { error: error?.message ?? null };
+}
