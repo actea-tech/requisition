@@ -4,7 +4,7 @@ import { canAccessSettings, canViewAudit } from "@/lib/roles";
 export interface NavItem {
   href: string;
   label: string;
-  icon: "dashboard" | "plus" | "list" | "receipt" | "check" | "audit" | "settings";
+  icon: "dashboard" | "plus" | "list" | "accounting" | "check" | "audit" | "settings";
 }
 
 export function navItemsForRole(role: UserRole): NavItem[] {
@@ -14,7 +14,7 @@ export function navItemsForRole(role: UserRole): NavItem[] {
     { href: "/requisitions", label: "My Requisitions", icon: "list" },
     // Fund requisitions specifically at the accounting stage — the same
     // tab as My Requisitions' "Accounting" tab, just reachable directly.
-    { href: "/requisitions?tab=accounting", label: "Needs My Accounting", icon: "receipt" },
+    { href: "/requisitions?tab=accounting", label: "Needs My Accounting", icon: "accounting" },
   ];
 
   // Shown to everyone, not just non-"staff" roles: a department head's
