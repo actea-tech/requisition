@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getAttachmentSignedUrl, reviewRequisitionAccountingAction } from "@/app/(dashboard)/requisitions/[id]/actions";
 import type { ExpenditureRow } from "@/components/requisitions/expenditure-accounting-panel";
@@ -23,6 +24,7 @@ export function AccountingReviewPanel({
   const [isPending, startTransition] = useTransition();
   const [comments, setComments] = useState("");
   const [shortfallNote, setShortfallNote] = useState("");
+  const commentsRef = useRef<HTMLTextAreaElement>(null);
 
   const disbursed = amount ?? 0;
   const totalAccounted = expenditures.reduce((sum, e) => sum + e.amount, 0);
@@ -31,7 +33,8 @@ export function AccountingReviewPanel({
 
   function handleReview(approve: boolean) {
     if (!approve && !comments.trim()) {
-      toast.error("A comment is required when returning it for correction.");
+      toast.error("Add a comment below explaining what needs correcting, then try again.");
+      commentsRef.current?.focus();
       return;
     }
     startTransition(async () => {
@@ -52,7 +55,7 @@ export function AccountingReviewPanel({
   }
 
   return (
-    <Card>
+    <Card id="accounting-review">
       <CardHeader>
         <CardTitle className="text-base">Review accounting</CardTitle>
         <CardDescription>The requester has submitted their expenditure accounting for review.</CardDescription>
@@ -103,24 +106,35 @@ export function AccountingReviewPanel({
         </div>
 
         {isOverspent ? (
+          <div className="space-y-1">
+            <Label htmlFor="accounting-shortfall-note">Overspend recovery note (optional)</Label>
+            <Textarea
+              id="accounting-shortfall-note"
+              placeholder="How will the overspend be recovered? (e.g. deduct from October payroll) — informational only"
+              value={shortfallNote}
+              onChange={(e) => setShortfallNote(e.target.value)}
+              disabled={isPending}
+              rows={2}
+              className="text-sm"
+            />
+          </div>
+        ) : null}
+
+        <div className="space-y-1">
+          <Label htmlFor="accounting-review-comments">
+            Comments <span className="font-normal text-muted-foreground">(required to return for correction)</span>
+          </Label>
           <Textarea
-            placeholder="How will the overspend be recovered? (e.g. deduct from October payroll) — optional, informational only"
-            value={shortfallNote}
-            onChange={(e) => setShortfallNote(e.target.value)}
+            id="accounting-review-comments"
+            ref={commentsRef}
+            placeholder="What needs correcting?"
+            value={comments}
+            onChange={(e) => setComments(e.target.value)}
             disabled={isPending}
             rows={2}
             className="text-sm"
           />
-        ) : null}
-
-        <Textarea
-          placeholder="Comments (required if returning for correction)"
-          value={comments}
-          onChange={(e) => setComments(e.target.value)}
-          disabled={isPending}
-          rows={2}
-          className="text-sm"
-        />
+        </div>
 
         <div className="space-y-2">
           <Button className="w-full" disabled={isPending} onClick={() => handleReview(true)}>

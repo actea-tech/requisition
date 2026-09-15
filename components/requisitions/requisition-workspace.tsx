@@ -102,6 +102,7 @@ export function RequisitionWorkspace({
     canEditExpenditures: boolean;
     showExpenditurePanel: boolean;
     canReviewAccounting: boolean;
+    canSendAccountingReminder: boolean;
     isOwnerDraft: boolean;
   };
   financeGroup: { id: string; full_name: string }[];
@@ -389,6 +390,7 @@ export function RequisitionWorkspace({
             expenditures={expenditures}
             canEdit={permissions.canEditExpenditures}
             canSubmit={permissions.canEditExpenditures}
+            canSendReminder={permissions.canSendAccountingReminder}
           />
         ) : null}
 

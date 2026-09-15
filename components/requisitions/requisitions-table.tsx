@@ -44,7 +44,13 @@ export function RequisitionsTable({ rows }: { rows: RequisitionListRow[] }) {
                     on TableRow), so clicking anywhere in the row navigates,
                     not just this cell's text. */}
                 <Link
-                  href={`/requisitions/${row.id}`}
+                  href={`/requisitions/${row.id}${
+                    row.status === "accounting_review"
+                      ? "#accounting-review"
+                      : row.status === "paid_posted"
+                        ? "#expenditure-accounting"
+                        : ""
+                  }`}
                   className="absolute inset-0"
                   aria-label={row.requisition_number ?? (row.status === "draft" ? "Draft" : "Pending number")}
                 />

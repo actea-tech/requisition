@@ -419,6 +419,10 @@ export interface Database {
         Args: { p_requisition_id: string; p_actor_id: string };
         Returns: void;
       };
+      send_accounting_reminder: {
+        Args: { p_requisition_id: string; p_actor_id: string };
+        Returns: void;
+      };
       review_requisition_accounting: {
         Args: {
           p_requisition_id: string;
