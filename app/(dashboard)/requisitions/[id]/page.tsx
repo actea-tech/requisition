@@ -41,6 +41,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: authorizationMethodsRaw },
     { data: assistantForwardsRaw },
     { data: expendituresRaw },
+    { data: paymentCancellationSettingRow },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -69,6 +70,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       .select("id, entry_type, description, amount, storage_path")
       .eq("requisition_id", id)
       .order("created_at"),
+    supabase.from("app_settings").select("value").eq("key", "payment_stage_cancellation_enabled").maybeSingle(),
   ]);
 
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
@@ -164,10 +166,14 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // Finance can cancel outright up until it's fully authorized; past that
   // point, cancel_requisition() itself only *requests* cancellation and
   // requires the Director's sign-off (decide_cancellation) — see migration
-  // 0036.
+  // 0036. Cancelling once it's reached Payment Processing is hidden by
+  // default per Finance's own request — an admin can turn it back on from
+  // Settings > Approval Rules (payment_stage_cancellation_enabled).
+  const paymentStageCancellationEnabled = paymentCancellationSettingRow?.value === "yes";
   const canCancelRequisition =
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
-    !["paid_posted", "posted_and_closed", "cancelled"].includes(requisition.status);
+    !["paid_posted", "posted_and_closed", "cancelled"].includes(requisition.status) &&
+    (requisition.status !== "approved_for_payment" || paymentStageCancellationEnabled);
   const canDecideCancellation = (isAdmin || profile.role === "director") && requisition.cancellation_status === "requested";
 
   // Fund requisitions only: the requester accounts for how the disbursed

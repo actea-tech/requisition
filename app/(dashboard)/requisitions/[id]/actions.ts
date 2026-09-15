@@ -35,6 +35,7 @@ const EDITABLE_FIELDS = [
   "payment_voucher_number",
   "qbo_posting_reference",
   "payment_status",
+  "payment_reference",
 ] as const;
 
 export async function updateRequisitionFields(requisitionId: string, values: Record<string, unknown>) {

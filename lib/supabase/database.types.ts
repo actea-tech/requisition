@@ -179,6 +179,7 @@ export interface Database {
           payment_voucher_number: string | null;
           qbo_posting_reference: string | null;
           payment_status: "pending" | "approved_for_payment" | "paid" | "posted_in_qbo" | "returned";
+          payment_reference: string | null;
           returned_from_stage: RequisitionStatus | null;
           return_reason: string | null;
           return_to: "requester" | "previous_stage";
@@ -240,6 +241,7 @@ export interface Database {
           qbo_posting_reference: string | null;
           payment_status: "pending" | "approved_for_payment" | "paid" | "posted_in_qbo" | "returned";
           requisition_kind: RequisitionKind;
+          payment_reference: string | null;
         }>;
         Relationships: [];
       };

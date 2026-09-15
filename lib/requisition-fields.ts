@@ -69,4 +69,5 @@ export const FIELD_SPECS: Record<string, FieldSpec> = {
   payment_voucher_number: { type: "text" },
   qbo_posting_reference: { type: "text" },
   payment_status: { type: "select", options: PAYMENT_STATUSES },
+  payment_reference: { type: "text" },
 };
