@@ -70,6 +70,7 @@ export interface Database {
           role: UserRole;
           department_id: string | null;
           is_active: boolean;
+          is_test_user: boolean;
           must_change_password: boolean;
           created_at: string;
           updated_at: string;
@@ -81,12 +82,14 @@ export interface Database {
           role?: UserRole;
           department_id?: string | null;
           is_active?: boolean;
+          is_test_user?: boolean;
         };
         Update: Partial<{
           full_name: string;
           role: UserRole;
           department_id: string | null;
           is_active: boolean;
+          is_test_user: boolean;
           must_change_password: boolean;
         }>;
         Relationships: [];
@@ -189,6 +192,7 @@ export interface Database {
           cancellation_requested_by: string | null;
           related_requisition_id: string | null;
           accounting_shortfall_note: string | null;
+          is_test: boolean;
           stage_entered_at: string;
           submitted_at: string | null;
           created_at: string;
@@ -200,6 +204,7 @@ export interface Database {
           requester_id: string;
           department_id: string;
           requisition_type?: RequisitionScope;
+          is_test?: boolean;
           purpose?: string | null;
           activity_project?: string | null;
           payee_name?: string | null;
