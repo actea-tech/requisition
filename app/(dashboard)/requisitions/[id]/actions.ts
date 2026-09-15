@@ -124,6 +124,18 @@ export async function completePaymentAction(requisitionId: string, comments: str
   return { error: error?.message ?? null };
 }
 
+export async function markPostedAndClosedAction(requisitionId: string, comments: string | null) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("mark_posted_and_closed", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+    p_comments: comments,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
 export async function deleteDraftRequisition(requisitionId: string) {
   await requireProfile();
   const supabase = await createClient();

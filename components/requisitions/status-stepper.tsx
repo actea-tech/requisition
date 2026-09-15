@@ -11,7 +11,7 @@ export function StatusStepper({ status, returnedFromStage }: { status: Requisiti
   return (
     <ol className="space-y-3">
       {STATUS_STEPS.map((step, index) => {
-        const isDone = index < currentIndex || (index === currentIndex && !isTerminalBad && status === "paid_posted");
+        const isDone = index < currentIndex || (index === currentIndex && !isTerminalBad && status === "posted_and_closed");
         const isCurrent = index === currentIndex;
 
         return (

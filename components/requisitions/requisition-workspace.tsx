@@ -23,6 +23,7 @@ import {
   completePaymentAction,
   decideCancellationAction,
   deleteDraftRequisition,
+  markPostedAndClosedAction,
   recordDecisionAction,
   resubmitRequisitionAction,
   setRequiresDirectorAuthorizationAction,
@@ -86,6 +87,7 @@ export function RequisitionWorkspace({
     canManageFinanceGroup: boolean;
     canSetDirectorAuthorization: boolean;
     canEditFinalProcessing: boolean;
+    canMarkPostedAndClosed: boolean;
     canUploadAttachments: boolean;
     canManageAuthorizers: boolean;
     requiresAuthorizationMethodOnApprove: boolean;
@@ -221,7 +223,15 @@ export function RequisitionWorkspace({
       await updateRequisitionFields(requisition.id, values);
       const result = await completePaymentAction(requisition.id, comment.trim() || null);
       if (result.error) toast.error(result.error);
-      else toast.success("Requisition closed as paid/posted");
+      else toast.success("Requisition marked as Paid");
+    });
+  }
+
+  function handleMarkPostedAndClosed() {
+    startTransition(async () => {
+      const result = await markPostedAndClosedAction(requisition.id, comment.trim() || null);
+      if (result.error) toast.error(result.error);
+      else toast.success("Requisition posted and closed");
     });
   }
 
@@ -250,7 +260,7 @@ export function RequisitionWorkspace({
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               Print record
             </Button>
-            {requisition.status === "paid_posted" || requisition.status === "rejected" ? (
+            {requisition.status === "posted_and_closed" || requisition.status === "rejected" ? (
               <>
                 <Button
                   render={<a href={`/api/requisitions/${requisition.id}/export?format=csv`} />}
@@ -573,9 +583,15 @@ export function RequisitionWorkspace({
                   Save payment details
                 </Button>
                 <Button className="w-full" disabled={isPending} onClick={handleCompletePayment}>
-                  Mark paid / posted &amp; close
+                  Mark Paid
                 </Button>
               </div>
+            ) : null}
+
+            {permissions.canMarkPostedAndClosed ? (
+              <Button className="w-full" disabled={isPending} onClick={handleMarkPostedAndClosed}>
+                Mark Posted &amp; Closed
+              </Button>
             ) : null}
 
             {permissions.canCancelRequisition ? (
@@ -589,6 +605,7 @@ export function RequisitionWorkspace({
             !permissions.canDecide &&
             !permissions.canSetDirectorAuthorization &&
             !permissions.canEditFinalProcessing &&
+            !permissions.canMarkPostedAndClosed &&
             !permissions.canCancelRequisition ? (
               <p className="text-sm text-muted-foreground">No action needed from you right now.</p>
             ) : null}
