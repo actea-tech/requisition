@@ -87,3 +87,17 @@ export async function setPaymentStageCancellationEnabled(enabled: boolean) {
   revalidatePath("/settings/approval-rules");
   return { error: error?.message ?? null };
 }
+
+export async function setNewRequisitionsEnabled(enabled: boolean) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("app_settings")
+    .update({ value: enabled ? "yes" : "no" })
+    .eq("key", "new_requisitions_enabled");
+
+  revalidatePath("/settings/approval-rules");
+  revalidatePath("/requisitions/new");
+  return { error: error?.message ?? null };
+}
