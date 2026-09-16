@@ -42,6 +42,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: assistantForwardsRaw },
     { data: expendituresRaw },
     { data: paymentCancellationSettingRow },
+    { count: departmentHeadCount },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -58,7 +59,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       .order("created_at"),
     supabase.from("finance_approver_group").select("user_id").eq("requisition_id", id),
     supabase.from("profiles").select("id, full_name, role, is_active, is_test_user"),
-    supabase.from("departments").select("name").eq("id", requisition.department_id).single(),
+    requisition.department_id
+      ? supabase.from("departments").select("name").eq("id", requisition.department_id).single()
+      : Promise.resolve({ data: null }),
     supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
     supabase.from("currencies").select("code").order("code"),
     supabase.from("requisition_authorizers").select("user_id").eq("requisition_id", id),
@@ -71,6 +74,12 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       .eq("requisition_id", id)
       .order("created_at"),
     supabase.from("app_settings").select("value").eq("key", "payment_stage_cancellation_enabled").maybeSingle(),
+    requisition.department_id
+      ? supabase
+          .from("department_heads")
+          .select("user_id", { count: "exact", head: true })
+          .eq("department_id", requisition.department_id)
+      : Promise.resolve({ count: 0 }),
   ]);
 
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
@@ -335,14 +344,24 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     storage_path: e.storage_path,
   }));
 
+  // A Departmental requisition needs somewhere to actually be reviewed at
+  // the department stage — with no department assigned at all, or a
+  // department that has nobody set as its head, that stage would have zero
+  // eligible approvers and the requisition would be stuck forever. Individual
+  // is the only safe option in either case (submit_requisition also refuses
+  // to route into a headless department, as a server-side backstop).
+  const mustBeIndividual = !requisition.department_id || (departmentHeadCount ?? 0) === 0;
+
   // "Finance (direct to authorization)" is only offered to requesters who
   // can actually route straight past both review stages — everyone else
   // still only sees Departmental/Individual.
   const canRaiseFinanceDirect =
     isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant";
-  const requisitionTypeOptions = canRaiseFinanceDirect
-    ? [...REQUISITION_TYPES, FINANCE_DIRECT_REQUISITION_TYPE]
-    : undefined;
+  const requisitionTypeOptions = mustBeIndividual
+    ? REQUISITION_TYPES.filter((t) => t.value === "individual")
+    : canRaiseFinanceDirect
+      ? [...REQUISITION_TYPES, FINANCE_DIRECT_REQUISITION_TYPE]
+      : undefined;
 
   return (
     <RequisitionWorkspace

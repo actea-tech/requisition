@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     auditRowToValues(
       r,
       profileById.get(r.requester_id) ?? "",
-      departmentById.get(r.department_id) ?? "",
+      (r.department_id && departmentById.get(r.department_id)) ?? "",
       STATUS_LABELS[r.status as RequisitionStatus] ?? r.status,
     ),
   );

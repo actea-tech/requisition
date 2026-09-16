@@ -38,7 +38,7 @@ export default async function AuditPage({
     currency: r.currency,
     created_at: r.created_at,
     requesterName: profileById.get(r.requester_id) ?? "Unknown",
-    departmentName: departmentById.get(r.department_id) ?? "—",
+    departmentName: (r.department_id && departmentById.get(r.department_id)) ?? "—",
   }));
 
   const exportQuery = new URLSearchParams(

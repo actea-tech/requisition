@@ -32,7 +32,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const [{ data: requesterProfile }, { data: department }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", requisition.requester_id).single(),
-    supabase.from("departments").select("name").eq("id", requisition.department_id).single(),
+    requisition.department_id
+      ? supabase.from("departments").select("name").eq("id", requisition.department_id).single()
+      : Promise.resolve({ data: null }),
   ]);
 
   const dataRow = auditRowToValues(

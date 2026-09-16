@@ -80,7 +80,7 @@ export interface AuditSourceRow {
   submitted_at: string | null;
   status: string;
   requester_id: string;
-  department_id: string;
+  department_id: string | null;
   purpose: string | null;
   payee_name: string | null;
   amount: number | null;

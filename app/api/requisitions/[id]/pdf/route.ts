@@ -45,7 +45,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       .select("stage_key, decision, comments, created_at, actor_id")
       .eq("requisition_id", id)
       .order("created_at"),
-    supabase.from("departments").select("name").eq("id", requisition.department_id).single(),
+    requisition.department_id
+      ? supabase.from("departments").select("name").eq("id", requisition.department_id).single()
+      : Promise.resolve({ data: null }),
     supabase.from("profiles").select("id, full_name"),
   ]);
 
