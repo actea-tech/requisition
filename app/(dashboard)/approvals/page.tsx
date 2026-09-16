@@ -35,7 +35,7 @@ export default async function ApprovalsPage() {
   const rows = (requisitions ?? []).map((r) => ({
     ...r,
     requesterName: profileById.get(r.requester_id) ?? "Unknown",
-    departmentName: departmentById.get(r.department_id) ?? "—",
+    departmentName: (r.department_id && departmentById.get(r.department_id)) ?? "—",
   }));
 
   return (

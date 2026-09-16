@@ -151,7 +151,7 @@ export interface Database {
           id: string;
           requisition_number: string | null;
           requester_id: string;
-          department_id: string;
+          department_id: string | null;
           requisition_type: RequisitionScope;
           requisition_kind: RequisitionKind;
           status: RequisitionStatus;
@@ -202,7 +202,7 @@ export interface Database {
           id?: string;
           requisition_number?: string;
           requester_id: string;
-          department_id: string;
+          department_id: string | null;
           requisition_type?: RequisitionScope;
           is_test?: boolean;
           purpose?: string | null;
