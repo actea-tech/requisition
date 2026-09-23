@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import { sanitizeFileNameForStorageKey } from "@/lib/storage";
 
 // Mirrors app/api/attachments/route.ts — a plain Route Handler (not a
 // Server Action) so the client can drive the upload via XMLHttpRequest and
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
 
   let storagePath: string | null = null;
   if (file && file.size > 0) {
-    storagePath = `${requisitionId}/expenditures/${randomUUID()}-${file.name}`;
+    storagePath = `${requisitionId}/expenditures/${randomUUID()}-${sanitizeFileNameForStorageKey(file.name)}`;
     const { error: uploadError } = await supabase.storage
       .from("requisition-attachments")
       .upload(storagePath, file, { contentType: file.type || undefined });
