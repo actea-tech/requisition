@@ -23,9 +23,11 @@ import {
   deleteUser,
   resetUserPassword,
   setUserActive,
+  setUserDepartments,
   setUserTestMode,
   updateUserRole,
 } from "@/app/(dashboard)/settings/users/actions";
+import { DepartmentsChecklist } from "@/components/settings/departments-checklist";
 import { ROLE_OPTIONS } from "@/lib/roles";
 import type { UserRole } from "@/lib/supabase/database.types";
 
@@ -34,7 +36,7 @@ interface UserRow {
   full_name: string;
   email: string;
   role: UserRole;
-  department_id: string | null;
+  departmentIds: string[];
   is_active: boolean;
   is_test_user: boolean;
   must_change_password: boolean;
@@ -110,7 +112,7 @@ function UserTableRow({
           onValueChange={(role) => {
             if (!role) return;
             startTransition(async () => {
-              await updateUserRole(user.id, role as UserRole, user.department_id);
+              await updateUserRole(user.id, role as UserRole);
             });
           }}
           disabled={isPending}
@@ -129,28 +131,12 @@ function UserTableRow({
         </Select>
       </TableCell>
       <TableCell>
-        <Select
-          value={user.department_id ?? "none"}
-          onValueChange={(value) => {
-            startTransition(async () => {
-              await updateUserRole(user.id, user.role, value === "none" || !value ? null : value);
-            });
-          }}
+        <DepartmentsChecklist
+          departments={departments}
+          selectedIds={user.departmentIds}
           disabled={isPending}
-          items={{ none: "No department", ...Object.fromEntries(departments.map((d) => [d.id, d.name])) }}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No department</SelectItem>
-            {departments.map((d) => (
-              <SelectItem key={d.id} value={d.id}>
-                {d.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(ids) => startTransition(() => setUserDepartments(user.id, ids))}
+        />
       </TableCell>
       <TableCell>
         {user.must_change_password ? (

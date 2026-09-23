@@ -68,7 +68,6 @@ export interface Database {
           full_name: string;
           email: string;
           role: UserRole;
-          department_id: string | null;
           is_active: boolean;
           is_test_user: boolean;
           must_change_password: boolean;
@@ -80,14 +79,12 @@ export interface Database {
           full_name: string;
           email: string;
           role?: UserRole;
-          department_id?: string | null;
           is_active?: boolean;
           is_test_user?: boolean;
         };
         Update: Partial<{
           full_name: string;
           role: UserRole;
-          department_id: string | null;
           is_active: boolean;
           is_test_user: boolean;
           must_change_password: boolean;
@@ -98,6 +95,12 @@ export interface Database {
         Row: { department_id: string; user_id: string; created_at: string };
         Insert: { department_id: string; user_id: string };
         Update: Partial<{ department_id: string; user_id: string }>;
+        Relationships: [];
+      };
+      profile_departments: {
+        Row: { profile_id: string; department_id: string; created_at: string };
+        Insert: { profile_id: string; department_id: string };
+        Update: Partial<{ profile_id: string; department_id: string }>;
         Relationships: [];
       };
       approval_stage_config: {

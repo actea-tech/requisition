@@ -6,16 +6,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default async function UsersSettingsPage() {
   const supabase = await createClient();
 
-  const [{ data: users }, { data: departments }] = await Promise.all([
+  const [{ data: users }, { data: departments }, { data: memberships }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, email, role, department_id, is_active, is_test_user, must_change_password")
+      .select("id, full_name, email, role, is_active, is_test_user, must_change_password")
       .order("full_name"),
     supabase.from("departments").select("id, name").eq("is_active", true).order("name"),
+    supabase.from("profile_departments").select("profile_id, department_id"),
   ]);
 
-  const productionUsers = (users ?? []).filter((u) => !u.is_test_user);
-  const testUsers = (users ?? []).filter((u) => u.is_test_user);
+  const departmentIdsByProfile = new Map<string, string[]>();
+  for (const m of memberships ?? []) {
+    departmentIdsByProfile.set(m.profile_id, [...(departmentIdsByProfile.get(m.profile_id) ?? []), m.department_id]);
+  }
+  const usersWithDepartments = (users ?? []).map((u) => ({
+    ...u,
+    departmentIds: departmentIdsByProfile.get(u.id) ?? [],
+  }));
+
+  const productionUsers = usersWithDepartments.filter((u) => !u.is_test_user);
+  const testUsers = usersWithDepartments.filter((u) => u.is_test_user);
 
   return (
     <div className="space-y-4">
