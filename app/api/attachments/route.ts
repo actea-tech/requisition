@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import { sanitizeFileNameForStorageKey } from "@/lib/storage";
 
 // Plain Route Handler (not a Server Action) so the client can drive the
 // upload via XMLHttpRequest and get real byte-level progress — fetch/
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "file and requisitionId are required" }, { status: 400 });
   }
 
-  const storagePath = `${requisitionId}/${randomUUID()}-${file.name}`;
+  const storagePath = `${requisitionId}/${randomUUID()}-${sanitizeFileNameForStorageKey(file.name)}`;
   const { error: uploadError } = await supabase.storage
     .from("requisition-attachments")
     .upload(storagePath, file, { contentType: file.type || undefined });
