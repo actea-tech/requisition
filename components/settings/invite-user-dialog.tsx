@@ -15,12 +15,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DepartmentsChecklist } from "@/components/settings/departments-checklist";
 import { ROLE_OPTIONS } from "@/lib/roles";
 
 export function InviteUserDialog({ departments }: { departments: { id: string; name: string }[] }) {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState("staff");
-  const [departmentId, setDepartmentId] = useState<string>("");
+  const [departmentIds, setDepartmentIds] = useState<string[]>([]);
   const [state, formAction, isPending] = useActionState(inviteUser, { error: null });
   const submittedRef = useRef(false);
 
@@ -29,7 +30,7 @@ export function InviteUserDialog({ departments }: { departments: { id: string; n
       submittedRef.current = false;
       setOpen(false);
       setRole("staff");
-      setDepartmentId("");
+      setDepartmentIds([]);
     }
   }, [isPending, state.error]);
 
@@ -81,24 +82,11 @@ export function InviteUserDialog({ departments }: { departments: { id: string; n
               <input type="hidden" name="role" value={role} />
             </div>
             <div className="space-y-1.5">
-              <Label>Department</Label>
-              <Select
-                value={departmentId}
-                onValueChange={(value) => setDepartmentId(value ?? "")}
-                items={Object.fromEntries(departments.map((d) => [d.id, d.name]))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="No department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="department_id" value={departmentId} />
+              <Label>Departments</Label>
+              <DepartmentsChecklist departments={departments} selectedIds={departmentIds} onChange={setDepartmentIds} />
+              {departmentIds.map((id) => (
+                <input key={id} type="hidden" name="department_ids" value={id} />
+              ))}
             </div>
             {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
           </div>

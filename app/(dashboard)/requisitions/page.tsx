@@ -24,7 +24,7 @@ export default async function MyRequisitionsPage({
 
   let query = supabase
     .from("requisitions")
-    .select("id, requisition_number, status, purpose, amount, currency, created_at")
+    .select("id, requisition_number, status, purpose, amount, currency, created_at, department_id")
     .eq("requester_id", profile.id)
     .order("created_at", { ascending: false });
 
@@ -42,17 +42,17 @@ export default async function MyRequisitionsPage({
   // Closed step), so only genuinely terminal statuses belong here now.
   else if (tab === "done") query = query.in("status", ["posted_and_closed", "rejected"]);
 
-  const [{ data: requisitions }, { data: department }] = await Promise.all([
+  const [{ data: requisitions }, { data: departments }] = await Promise.all([
     query,
-    profile.department_id
-      ? supabase.from("departments").select("name").eq("id", profile.department_id).single()
-      : Promise.resolve({ data: null }),
+    supabase.from("departments").select("id, name"),
   ]);
+
+  const departmentById = new Map((departments ?? []).map((d) => [d.id, d.name]));
 
   const rows = (requisitions ?? []).map((r) => ({
     ...r,
     requesterName: profile.full_name,
-    departmentName: department?.name ?? "—",
+    departmentName: (r.department_id && departmentById.get(r.department_id)) ?? "—",
   }));
 
   return (

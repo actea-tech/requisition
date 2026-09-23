@@ -13,7 +13,7 @@ export async function inviteUser(_prevState: { error: string | null }, formData:
   const fullName = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const role = String(formData.get("role") ?? "staff") as UserRole;
-  const departmentId = String(formData.get("department_id") ?? "") || null;
+  const departmentIds = formData.getAll("department_ids").map(String).filter(Boolean);
 
   if (!fullName || !email) {
     return { error: "Full name and email are required." };
@@ -31,16 +31,17 @@ export async function inviteUser(_prevState: { error: string | null }, formData:
     email,
     password: tempPassword,
     email_confirm: true,
-    user_metadata: { full_name: fullName, role, department_id: departmentId },
+    user_metadata: { full_name: fullName, role, department_ids: departmentIds },
   });
 
   if (error) {
     return { error: error.message };
   }
 
-  const { data: department } = departmentId
-    ? await supabaseAdmin.from("departments").select("name").eq("id", departmentId).single()
-    : { data: null };
+  const { data: departments } =
+    departmentIds.length > 0
+      ? await supabaseAdmin.from("departments").select("name").in("id", departmentIds)
+      : { data: [] };
 
   await supabaseAdmin.rpc("enqueue_email", {
     p_requisition_id: null,
@@ -49,7 +50,7 @@ export async function inviteUser(_prevState: { error: string | null }, formData:
     p_payload: {
       full_name: fullName,
       role_label: ROLE_LABELS[role],
-      department_name: department?.name ?? null,
+      department_name: (departments ?? []).map((d) => d.name).join(", ") || null,
       temp_password: tempPassword,
       login_link: `${appUrl}/login`,
     },
@@ -59,12 +60,27 @@ export async function inviteUser(_prevState: { error: string | null }, formData:
   return { error: null };
 }
 
-export async function updateUserRole(userId: string, role: UserRole, departmentId: string | null) {
+export async function updateUserRole(userId: string, role: UserRole) {
   await requireAdmin();
   const supabaseAdmin = createAdminClient();
-  const { error } = await supabaseAdmin.from("profiles").update({ role, department_id: departmentId }).eq("id", userId);
+  const { error } = await supabaseAdmin.from("profiles").update({ role }).eq("id", userId);
   revalidatePath("/settings/users");
   return { error: error?.message ?? null };
+}
+
+// Full-replace semantics — mirrors how finance_approver_group/
+// requisition_authorizers selections are replaced wholesale elsewhere in
+// this app, rather than diffing individual add/remove calls.
+export async function setUserDepartments(userId: string, departmentIds: string[]) {
+  await requireAdmin();
+  const supabaseAdmin = createAdminClient();
+  await supabaseAdmin.from("profile_departments").delete().eq("profile_id", userId);
+  if (departmentIds.length > 0) {
+    await supabaseAdmin
+      .from("profile_departments")
+      .insert(departmentIds.map((departmentId) => ({ profile_id: userId, department_id: departmentId })));
+  }
+  revalidatePath("/settings/users");
 }
 
 export async function setUserActive(userId: string, isActive: boolean) {
@@ -95,7 +111,7 @@ export async function resetUserPassword(userId: string) {
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("full_name, email, role, department_id, must_change_password")
+    .select("full_name, email, role, must_change_password")
     .eq("id", userId)
     .single();
   if (!profile) return { error: "User not found." };
@@ -109,9 +125,16 @@ export async function resetUserPassword(userId: string) {
   const { data: appUrlSetting } = await supabaseAdmin.from("app_settings").select("value").eq("key", "app_url").single();
   const appUrl = appUrlSetting?.value ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-  const { data: department } = profile.department_id
-    ? await supabaseAdmin.from("departments").select("name").eq("id", profile.department_id).single()
-    : { data: null };
+  const { data: memberships } = await supabaseAdmin
+    .from("profile_departments")
+    .select("department_id")
+    .eq("profile_id", userId);
+  const membershipIds = (memberships ?? []).map((m) => m.department_id);
+  const { data: departments } =
+    membershipIds.length > 0
+      ? await supabaseAdmin.from("departments").select("name").in("id", membershipIds)
+      : { data: [] };
+  const departmentName = (departments ?? []).map((d) => d.name).join(", ") || null;
 
   await supabaseAdmin.rpc("enqueue_email", {
     p_requisition_id: null,
@@ -120,7 +143,7 @@ export async function resetUserPassword(userId: string) {
     p_payload: {
       full_name: profile.full_name,
       role_label: ROLE_LABELS[profile.role],
-      department_name: department?.name ?? null,
+      department_name: departmentName,
       temp_password: tempPassword,
       login_link: `${appUrl}/login`,
     },

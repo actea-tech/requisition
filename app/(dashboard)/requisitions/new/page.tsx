@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/session";
+import { ChooseDepartmentForm } from "@/components/requisitions/choose-department-form";
+import { createDraftRequisition } from "./actions";
 
 export default async function NewRequisitionPage() {
   const profile = await requireProfile();
@@ -24,26 +26,26 @@ export default async function NewRequisitionPage() {
     }
   }
 
-  // Departmental only makes sense when there's actually a department head to
-  // review it — with no department assigned at all, or a department with
-  // nobody set as its head, Individual is the only routing that works.
-  const { count: departmentHeadCount } = profile.department_id
-    ? await supabase
-        .from("department_heads")
-        .select("user_id", { count: "exact", head: true })
-        .eq("department_id", profile.department_id)
-    : { count: 0 };
-  const mustBeIndividual = !profile.department_id || (departmentHeadCount ?? 0) === 0;
+  const { data: memberships } = await supabase
+    .from("profile_departments")
+    .select("department_id")
+    .eq("profile_id", profile.id);
+  const membershipIds = (memberships ?? []).map((m) => m.department_id);
 
-  const { data, error } = await supabase
-    .from("requisitions")
-    .insert({
-      requester_id: profile.id,
-      department_id: profile.department_id,
-      ...(mustBeIndividual ? { requisition_type: "individual" as const } : {}),
-    })
-    .select("id")
-    .single();
+  let departmentId: string | null = null;
+  if (membershipIds.length === 1) {
+    departmentId = membershipIds[0];
+  } else if (membershipIds.length > 1) {
+    const { data: departments } = await supabase
+      .from("departments")
+      .select("id, name")
+      .in("id", membershipIds)
+      .order("name");
+    return <ChooseDepartmentForm departments={departments ?? []} />;
+  }
+  // membershipIds.length === 0 → departmentId stays null (individual-only).
+
+  const { data, error } = await createDraftRequisition(supabase, profile.id, departmentId);
 
   if (error || !data) {
     return (
