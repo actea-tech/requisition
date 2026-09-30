@@ -435,6 +435,14 @@ export interface Database {
         Args: { p_requisition_id: string; p_actor_id: string };
         Returns: void;
       };
+      submit_procurement_invoice: {
+        Args: { p_requisition_id: string; p_actor_id: string };
+        Returns: void;
+      };
+      set_requisition_requires_full_reapproval: {
+        Args: { p_requisition_id: string; p_actor_id: string; p_value: boolean };
+        Returns: void;
+      };
       send_accounting_reminder: {
         Args: { p_requisition_id: string; p_actor_id: string };
         Returns: void;

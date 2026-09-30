@@ -30,7 +30,16 @@ export default async function MyRequisitionsPage({
 
   if (tab === "draft") query = query.in("status", ["draft", "returned"]);
   else if (tab === "active")
-    query = query.in("status", ["dept_review", "finance_review", "director_review", "approved_for_payment", "paid_posted"]);
+    query = query.in("status", [
+      "dept_review",
+      "procurement_dept_review",
+      "procurement_finance_review",
+      "awaiting_invoice",
+      "finance_review",
+      "director_review",
+      "approved_for_payment",
+      "paid_posted",
+    ]);
   // Fund requisitions specifically at the accounting stage — either still
   // awaiting your own submission (paid_posted) or already submitted and
   // awaiting Finance's review (accounting_review). Also reachable from the

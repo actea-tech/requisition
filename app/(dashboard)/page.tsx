@@ -9,26 +9,38 @@ export default async function DashboardHome() {
   const profile = await requireProfile();
   const supabase = await createClient();
 
-  const [{ count: myCount }, { data: pendingIds }, { count: myActionCount }, { count: needsAccountingCount }] =
-    await Promise.all([
-      supabase.from("requisitions").select("id", { count: "exact", head: true }).eq("requester_id", profile.id),
-      supabase.rpc("get_pending_approval_requisition_ids", { p_user_id: profile.id }),
-      // Requisitions returned straight back to them — easy to miss since
-      // nothing else on the dashboard calls it out.
-      supabase
-        .from("requisitions")
-        .select("id", { count: "exact", head: true })
-        .eq("requester_id", profile.id)
-        .eq("status", "returned")
-        .eq("return_to", "requester"),
-      // Fund requisitions they've been paid on but haven't yet accounted for.
-      supabase
-        .from("requisitions")
-        .select("id", { count: "exact", head: true })
-        .eq("requester_id", profile.id)
-        .eq("requisition_kind", "fund")
-        .eq("status", "paid_posted"),
-    ]);
+  const [
+    { count: myCount },
+    { data: pendingIds },
+    { count: myActionCount },
+    { count: needsAccountingCount },
+    { count: awaitingInvoiceCount },
+  ] = await Promise.all([
+    supabase.from("requisitions").select("id", { count: "exact", head: true }).eq("requester_id", profile.id),
+    supabase.rpc("get_pending_approval_requisition_ids", { p_user_id: profile.id }),
+    // Requisitions returned straight back to them — easy to miss since
+    // nothing else on the dashboard calls it out.
+    supabase
+      .from("requisitions")
+      .select("id", { count: "exact", head: true })
+      .eq("requester_id", profile.id)
+      .eq("status", "returned")
+      .eq("return_to", "requester"),
+    // Fund requisitions they've been paid on but haven't yet accounted for.
+    supabase
+      .from("requisitions")
+      .select("id", { count: "exact", head: true })
+      .eq("requester_id", profile.id)
+      .eq("requisition_kind", "fund")
+      .eq("status", "paid_posted"),
+    // Product/Service requisitions cleared for budget availability, waiting
+    // on the requester to add the real invoice/amount.
+    supabase
+      .from("requisitions")
+      .select("id", { count: "exact", head: true })
+      .eq("requester_id", profile.id)
+      .eq("status", "awaiting_invoice"),
+  ]);
   const pendingCount = pendingIds?.length ?? 0;
 
   return (
@@ -81,6 +93,24 @@ export default async function DashboardHome() {
             </CardAction>
           </CardHeader>
         </Card>
+
+        {awaitingInvoiceCount ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                Awaiting invoice <Badge variant="destructive">{awaitingInvoiceCount}</Badge>
+              </CardTitle>
+              <CardDescription>
+                Product/Service requisitions cleared for budget — add the real invoice to continue.
+              </CardDescription>
+              <CardAction>
+                <Button render={<Link href="/requisitions?tab=active" />} nativeButton={false} size="sm" variant="outline">
+                  Add invoice
+                </Button>
+              </CardAction>
+            </CardHeader>
+          </Card>
+        ) : null}
 
         {needsAccountingCount ? (
           <Card>
