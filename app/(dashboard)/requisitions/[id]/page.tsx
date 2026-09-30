@@ -271,13 +271,18 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
           // workflow engine end-to-end, making this separate manually-set
           // field redundant and confusing at the Payment Processing stage.
           f.field_key !== "payment_status" &&
-          // estimated_amount only applies to procurement requisitions.
-          (f.field_key !== "estimated_amount" || requisition.requisition_kind === "procurement") &&
+          // estimated_amount only applies to procurement requisitions. While
+          // the owner can still change the kind itself (draft/returned),
+          // every payment_details field is sent through regardless of the
+          // *persisted* kind/stage — the client reacts live to the in-
+          // progress "Requisition kind" selection instead of only updating
+          // after a save+reload.
+          (f.field_key !== "estimated_amount" || requisition.requisition_kind === "procurement" || canEditDraftFields) &&
           // The real amount, payee, and payment-mode details don't exist
           // yet pre-invoice — estimated_amount + currency cover that window
           // instead.
-          (f.field_key !== "amount" || !isProcurementPreInvoice) &&
-          (!PAYMENT_STAGE_ONLY_FIELDS.has(f.field_key) || !isProcurementPreInvoice) &&
+          (f.field_key !== "amount" || !isProcurementPreInvoice || canEditDraftFields) &&
+          (!PAYMENT_STAGE_ONLY_FIELDS.has(f.field_key) || !isProcurementPreInvoice || canEditDraftFields) &&
           (!restrictToRequesterView || f.is_visible),
       )
       .map((f) => ({
@@ -287,8 +292,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         is_required: f.is_required,
         // Once the invoice stage is reached, the original estimate stays
         // visible for reference but locked — never silently overwritten
-        // alongside the real amount.
-        locked: f.field_key === "estimated_amount" && !isProcurementPreInvoice,
+        // alongside the real amount. Never locked while still draft-
+        // editable — there's no invoice to protect against yet.
+        locked: f.field_key === "estimated_amount" && !isProcurementPreInvoice && !canEditDraftFields,
       })),
   }));
 
