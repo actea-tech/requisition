@@ -55,3 +55,19 @@ export async function createRequisitionInDepartment(departmentId: string) {
 
   redirect(`/requisitions/${data.id}`);
 }
+
+// For someone in 2+ departments who'd rather not tie this requisition to
+// any of them — createDraftRequisition already produces exactly the right
+// row for departmentId: null (forced Individual), no membership check
+// needed since there's nothing to verify.
+export async function createRequisitionWithoutDepartment() {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+
+  const { data, error } = await createDraftRequisition(supabase, profile.id, null);
+  if (error || !data) {
+    return { error: error?.message ?? "Couldn't start a new requisition." };
+  }
+
+  redirect(`/requisitions/${data.id}`);
+}

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createRequisitionInDepartment } from "@/app/(dashboard)/requisitions/new/actions";
+import { createRequisitionInDepartment, createRequisitionWithoutDepartment } from "@/app/(dashboard)/requisitions/new/actions";
 
 export function ChooseDepartmentForm({ departments }: { departments: { id: string; name: string }[] }) {
   const [departmentId, setDepartmentId] = useState("");
@@ -14,6 +14,13 @@ export function ChooseDepartmentForm({ departments }: { departments: { id: strin
     if (!departmentId) return;
     startTransition(async () => {
       const result = await createRequisitionInDepartment(departmentId);
+      if (result?.error) toast.error(result.error);
+    });
+  }
+
+  function handleContinueWithoutDepartment() {
+    startTransition(async () => {
+      const result = await createRequisitionWithoutDepartment();
       if (result?.error) toast.error(result.error);
     });
   }
@@ -47,6 +54,17 @@ export function ChooseDepartmentForm({ departments }: { departments: { id: strin
       <Button onClick={handleContinue} disabled={!departmentId || isPending} className="w-full">
         {isPending ? "Starting…" : "Continue"}
       </Button>
+      <Button
+        onClick={handleContinueWithoutDepartment}
+        disabled={isPending}
+        variant="outline"
+        className="w-full"
+      >
+        Continue without a department
+      </Button>
+      <p className="text-xs text-muted-foreground">
+        This raises an Individual requisition, not tied to any department.
+      </p>
     </div>
   );
 }
