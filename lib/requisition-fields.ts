@@ -57,6 +57,7 @@ export const FIELD_SPECS: Record<string, FieldSpec> = {
   payee_name: { type: "text" },
   payee_contact: { type: "text" },
   amount: { type: "number" },
+  estimated_amount: { type: "number" },
   currency: { type: "select", options: CURRENCIES },
   payment_mode: { type: "select", options: PAYMENT_MODES },
   payment_mode_details: { type: "textarea" },

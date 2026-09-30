@@ -11,6 +11,8 @@ export interface FieldMeta {
   label: string;
   help_text: string | null;
   is_required: boolean;
+  /** Forces read-only regardless of the section's own editable state (e.g. a locked-in estimate). */
+  locked?: boolean;
 }
 
 export function DynamicField({

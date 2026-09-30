@@ -240,10 +240,14 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     isOwner && !canDecide && !canEditFinance && !canEditFinalProcessing && !canMarkPostedAndClosed && !isAdmin;
   const REQUESTER_VISIBLE_SECTIONS = new Set<FormSection>(["request_details", "payment_details"]);
 
-  // Payment Details fields don't have a real figure yet while procurement
-  // is pre-invoice, so they're visually optional (is_required was never
-  // enforced anywhere to begin with — this is cosmetic).
-  const RELAXED_PAYMENT_FIELDS = new Set(["amount", "payee_name", "payee_contact", "payment_mode"]);
+  // Payee/payment-mode fields don't have a real figure yet while
+  // procurement is pre-invoice, so they're visually optional (is_required
+  // was never enforced anywhere to begin with — this is cosmetic). "amount"
+  // itself is handled separately below: procurement uses its own
+  // estimated_amount field pre-invoice (always optional) and only shows —
+  // and requires — the real "amount" once the invoice exists, so an
+  // approved estimate is never silently overwritten in place.
+  const RELAXED_PAYMENT_FIELDS = new Set(["payee_name", "payee_contact", "payment_mode"]);
 
   const sections: SectionSpec[] = SECTION_DEFS.filter(
     ({ key }) => !restrictToRequesterView || REQUESTER_VISIBLE_SECTIONS.has(key),
@@ -269,13 +273,22 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
           // workflow engine end-to-end, making this separate manually-set
           // field redundant and confusing at the Payment Processing stage.
           f.field_key !== "payment_status" &&
+          // estimated_amount only applies to procurement requisitions.
+          (f.field_key !== "estimated_amount" || requisition.requisition_kind === "procurement") &&
+          // The real amount doesn't exist yet pre-invoice — estimated_amount
+          // covers that window instead.
+          (f.field_key !== "amount" || !isProcurementPreInvoice) &&
           (!restrictToRequesterView || f.is_visible),
       )
       .map((f) => ({
         field_key: f.field_key,
-        label: f.field_key === "amount" && isProcurementPreInvoice ? "Estimated amount (optional)" : f.label,
+        label: f.label,
         help_text: f.help_text,
         is_required: isProcurementPreInvoice && RELAXED_PAYMENT_FIELDS.has(f.field_key) ? false : f.is_required,
+        // Once the invoice stage is reached, the original estimate stays
+        // visible for reference but locked — never silently overwritten
+        // alongside the real amount.
+        locked: f.field_key === "estimated_amount" && !isProcurementPreInvoice,
       })),
   }));
 
