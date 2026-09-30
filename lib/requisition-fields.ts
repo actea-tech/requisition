@@ -23,7 +23,7 @@ export const FINANCE_DIRECT_REQUISITION_TYPE = {
 // the same way requisition_type already works.
 export const REQUISITION_KINDS = [
   { value: "payment", label: "Payment Requisition" },
-  { value: "fund", label: "Fund Requisition (requires accounting for actual spend)" },
+  { value: "fund", label: "Fund Requisition (requires accounting)" },
   { value: "procurement", label: "Product/Service Requisition" },
 ];
 
