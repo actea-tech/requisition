@@ -11,6 +11,9 @@
 -- and status in (...)) at exactly those stages — auth_is_forwarded_
 -- assistant(...) and the finance_review-stage threshold/forwarding
 -- restriction elsewhere are untouched.
+--
+-- (See also 0067_finance_assistant_field_write_scope.sql — the same gap
+-- also exists in enforce_field_write_scope()'s Final Processing guard.)
 
 drop policy requisitions_select on requisitions;
 create policy requisitions_select on requisitions for select to authenticated
