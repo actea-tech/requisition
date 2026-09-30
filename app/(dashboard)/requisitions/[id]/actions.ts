@@ -113,6 +113,29 @@ export async function setRequiresDirectorAuthorizationAction(requisitionId: stri
   return { error: error?.message ?? null };
 }
 
+export async function submitProcurementInvoiceAction(requisitionId: string) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("submit_procurement_invoice", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
+export async function setRequiresFullReapprovalAction(requisitionId: string, value: boolean) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_requisition_requires_full_reapproval", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+    p_value: value,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
 export async function completePaymentAction(requisitionId: string, comments: string | null) {
   const profile = await requireProfile();
   const supabase = await createClient();

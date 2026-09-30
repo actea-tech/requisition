@@ -206,6 +206,15 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     isOwner && (requisition.status === "draft" || (requisition.status === "returned" && !isReturnedToPreviousStage));
   const canUploadAttachments = canEditDraftFields || canEditFinance || isAdmin;
 
+  // Procurement-only: once Finance clears the budget-availability check
+  // (Procurement — Finance Review), the requester adds the real invoice/
+  // amount/payee and confirms it — no department/Finance re-approval
+  // unless Finance explicitly required it (requires_full_reapproval).
+  const canSubmitInvoice = isOwner && requisition.status === "awaiting_invoice";
+  const canSetRequiresFullReapproval =
+    canEditFinance && requisition.status === "procurement_finance_review";
+  const canUploadProcurementDocuments = canUploadAttachments || canSubmitInvoice;
+
   // Individual requisitions skip Department Head review entirely, so
   // there's no previous stage to return a Finance decision to.
   const previousStageLabel =
@@ -223,19 +232,29 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     isOwner && !canDecide && !canEditFinance && !canEditFinalProcessing && !canMarkPostedAndClosed && !isAdmin;
   const REQUESTER_VISIBLE_SECTIONS = new Set<FormSection>(["request_details", "payment_details"]);
 
+  // Procurement, before the invoice is known: Payment Details fields don't
+  // have a real figure yet, so they're visually optional (is_required was
+  // never enforced anywhere to begin with — this is cosmetic).
+  const isProcurementPreInvoice =
+    requisition.requisition_kind === "procurement" &&
+    ["draft", "returned", "procurement_dept_review", "procurement_finance_review"].includes(requisition.status);
+  const RELAXED_PAYMENT_FIELDS = new Set(["amount", "payee_name", "payee_contact", "payment_mode"]);
+
   const sections: SectionSpec[] = SECTION_DEFS.filter(
     ({ key }) => !restrictToRequesterView || REQUESTER_VISIBLE_SECTIONS.has(key),
   ).map(({ key, label }) => ({
     key,
     label,
     editable:
-      key === "request_details" || key === "payment_details"
+      key === "request_details"
         ? canEditDraftFields
-        : key === "budget_and_coding" || key === "compliance_and_support"
-          ? canEditFinance
-          : key === "finance_review"
+        : key === "payment_details"
+          ? canEditDraftFields || canSubmitInvoice
+          : key === "budget_and_coding" || key === "compliance_and_support"
             ? canEditFinance
-            : canEditFinalProcessing,
+            : key === "finance_review"
+              ? canEditFinance
+              : canEditFinalProcessing,
     fields: (fieldConfig ?? [])
       .filter(
         (f) =>
@@ -249,9 +268,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       )
       .map((f) => ({
         field_key: f.field_key,
-        label: f.label,
+        label: f.field_key === "amount" && isProcurementPreInvoice ? "Estimated amount (optional)" : f.label,
         help_text: f.help_text,
-        is_required: f.is_required,
+        is_required: isProcurementPreInvoice && RELAXED_PAYMENT_FIELDS.has(f.field_key) ? false : f.is_required,
       })),
   }));
 
@@ -266,7 +285,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // reusing the existing final_processing form_section value rather than a
   // new enum, since it already exists for exactly this part of the form.
   const attachments = (attachmentsRaw ?? [])
-    .filter((a) => a.section !== "final_processing")
+    .filter((a) => a.section !== "final_processing" && a.section !== "procurement_documents")
     .map((a) => ({
       id: a.id,
       file_name: a.file_name,
@@ -277,6 +296,16 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     }));
   const paymentAttachments = (attachmentsRaw ?? [])
     .filter((a) => a.section === "final_processing")
+    .map((a) => ({
+      id: a.id,
+      file_name: a.file_name,
+      file_size: a.file_size,
+      storage_path: a.storage_path,
+      description: a.description,
+      uploaderName: nameFor(a.uploaded_by),
+    }));
+  const procurementAttachments = (attachmentsRaw ?? [])
+    .filter((a) => a.section === "procurement_documents")
     .map((a) => ({
       id: a.id,
       file_name: a.file_name,
@@ -354,9 +383,12 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
 
   // "Finance (direct to authorization)" is only offered to requesters who
   // can actually route straight past both review stages — everyone else
-  // still only sees Departmental/Individual.
+  // still only sees Departmental/Individual. Never offered for procurement:
+  // skipping department/Finance review would defeat the budget-availability
+  // check that's the whole point of that kind.
   const canRaiseFinanceDirect =
-    isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant";
+    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
+    requisition.requisition_kind !== "procurement";
   const requisitionTypeOptions = mustBeIndividual
     ? REQUISITION_TYPES.filter((t) => t.value === "individual")
     : canRaiseFinanceDirect
@@ -369,6 +401,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       sections={sections}
       attachments={attachments}
       paymentAttachments={paymentAttachments}
+      procurementAttachments={procurementAttachments}
       history={history}
       expenditures={expenditures}
       permissions={{
@@ -380,6 +413,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canEditFinalProcessing,
         canMarkPostedAndClosed,
         canUploadAttachments,
+        canUploadProcurementDocuments,
         canManageAuthorizers,
         requiresAuthorizationMethodOnApprove,
         canCancelRequisition,
@@ -388,6 +422,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         showExpenditurePanel,
         canReviewAccounting,
         canSendAccountingReminder,
+        canSubmitInvoice,
+        canSetRequiresFullReapproval,
         isOwnerDraft: canEditDraftFields,
       }}
       financeGroup={financeGroup}

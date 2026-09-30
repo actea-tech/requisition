@@ -29,6 +29,8 @@ import {
   recordDecisionAction,
   resubmitRequisitionAction,
   setRequiresDirectorAuthorizationAction,
+  setRequiresFullReapprovalAction,
+  submitProcurementInvoiceAction,
   submitRequisitionAction,
   updateRequisitionFields,
 } from "@/app/(dashboard)/requisitions/[id]/actions";
@@ -51,6 +53,7 @@ export interface RequisitionRowForForm {
   cancellation_status: "requested" | "approved" | "denied" | null;
   cancellation_reason: string | null;
   accounting_shortfall_note: string | null;
+  requires_full_reapproval: boolean;
   amount: number | null;
   currency: string;
   requesterName: string;
@@ -64,6 +67,7 @@ export function RequisitionWorkspace({
   sections,
   attachments,
   paymentAttachments,
+  procurementAttachments,
   history,
   expenditures,
   permissions,
@@ -83,6 +87,7 @@ export function RequisitionWorkspace({
   sections: SectionSpec[];
   attachments: AttachmentRow[];
   paymentAttachments: AttachmentRow[];
+  procurementAttachments: AttachmentRow[];
   history: HistoryEntry[];
   expenditures: ExpenditureRow[];
   currencyOptions: { value: string; label: string }[];
@@ -95,6 +100,7 @@ export function RequisitionWorkspace({
     canEditFinalProcessing: boolean;
     canMarkPostedAndClosed: boolean;
     canUploadAttachments: boolean;
+    canUploadProcurementDocuments: boolean;
     canManageAuthorizers: boolean;
     requiresAuthorizationMethodOnApprove: boolean;
     canCancelRequisition: boolean;
@@ -103,6 +109,8 @@ export function RequisitionWorkspace({
     showExpenditurePanel: boolean;
     canReviewAccounting: boolean;
     canSendAccountingReminder: boolean;
+    canSubmitInvoice: boolean;
+    canSetRequiresFullReapproval: boolean;
     isOwnerDraft: boolean;
   };
   financeGroup: { id: string; full_name: string }[];
@@ -123,6 +131,14 @@ export function RequisitionWorkspace({
   const [requiresDirectorAuth, setRequiresDirectorAuth] = useState<"yes" | "no">(
     requisition.requires_director_authorization === "no" ? "no" : "yes",
   );
+  // Authorizer selection only matters once Director-vs-Payment is actually
+  // being decided — not at Procurement — Finance Review, which is only
+  // deciding budget availability against an amount that isn't final yet.
+  const requiresAuthorizerSelection =
+    permissions.canEditFinance &&
+    requisition.status !== "procurement_finance_review" &&
+    requiresDirectorAuth === "yes" &&
+    authorizerGroup.length === 0;
   const [values, setValues] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
     for (const section of sections) {
@@ -135,6 +151,7 @@ export function RequisitionWorkspace({
   });
   const [comment, setComment] = useState("");
   const [authorizationMethod, setAuthorizationMethod] = useState("");
+  const [requiresFullReapproval, setRequiresFullReapproval] = useState(requisition.requires_full_reapproval);
   const [isPending, startTransition] = useTransition();
 
   function setField(key: string, value: string) {
@@ -184,7 +201,7 @@ export function RequisitionWorkspace({
       toast.error("Select how you authorized this before approving.");
       return;
     }
-    if (decision === "approved" && permissions.canEditFinance && requiresDirectorAuth === "yes" && authorizerGroup.length === 0) {
+    if (decision === "approved" && requiresAuthorizerSelection) {
       toast.error("Add at least one authorizer before approving.");
       return;
     }
@@ -250,6 +267,23 @@ export function RequisitionWorkspace({
       const result = await decideCancellationAction(requisition.id, approve);
       if (result.error) toast.error(result.error);
       else toast.success(approve ? "Cancellation approved" : "Cancellation denied");
+    });
+  }
+
+  function handleSetRequiresFullReapproval(value: boolean) {
+    setRequiresFullReapproval(value);
+    startTransition(async () => {
+      const result = await setRequiresFullReapprovalAction(requisition.id, value);
+      if (result.error) toast.error(result.error);
+    });
+  }
+
+  function handleSubmitInvoice() {
+    startTransition(async () => {
+      await updateRequisitionFields(requisition.id, values);
+      const result = await submitProcurementInvoiceAction(requisition.id);
+      if (result.error) toast.error(result.error);
+      else toast.success("Invoice submitted");
     });
   }
 
@@ -378,6 +412,19 @@ export function RequisitionWorkspace({
             canDelete={permissions.canEditFinalProcessing}
             title="Payment processing documents"
             section="final_processing"
+            withDescription
+          />
+        ) : null}
+
+        {requisition.requisition_kind === "procurement" &&
+        (permissions.canUploadProcurementDocuments || procurementAttachments.length > 0) ? (
+          <AttachmentsPanel
+            requisitionId={requisition.id}
+            attachments={procurementAttachments}
+            canUpload={permissions.canUploadProcurementDocuments}
+            canDelete={permissions.isOwnerDraft || permissions.canSubmitInvoice}
+            title="Procurement documents"
+            section="procurement_documents"
             withDescription
           />
         ) : null}
@@ -511,6 +558,26 @@ export function RequisitionWorkspace({
               </div>
             ) : null}
 
+            {permissions.canSetRequiresFullReapproval ? (
+              <label className="flex items-start gap-2 rounded-md border p-2.5 text-xs text-muted-foreground">
+                <Checkbox
+                  checked={requiresFullReapproval}
+                  onCheckedChange={(c) => handleSetRequiresFullReapproval(c === true)}
+                  disabled={isPending}
+                />
+                <span>
+                  Require full re-approval from the top once the invoice is added (default: no — it proceeds
+                  straight to Finance Review once submitted).
+                </span>
+              </label>
+            ) : null}
+
+            {permissions.canSubmitInvoice ? (
+              <Button className="w-full" disabled={isPending} onClick={handleSubmitInvoice}>
+                Submit invoice
+              </Button>
+            ) : null}
+
             {permissions.canDecide ? (
               <div className="space-y-2">
                 <Label htmlFor="decision-comment">Comment</Label>
@@ -555,13 +622,13 @@ export function RequisitionWorkspace({
                   disabled={
                     isPending ||
                     (permissions.requiresAuthorizationMethodOnApprove && !authorizationMethod) ||
-                    (permissions.canEditFinance && requiresDirectorAuth === "yes" && authorizerGroup.length === 0)
+                    requiresAuthorizerSelection
                   }
                   onClick={() => handleDecision("approved")}
                 >
                   Approve
                 </Button>
-                {permissions.canEditFinance && requiresDirectorAuth === "yes" && authorizerGroup.length === 0 ? (
+                {requiresAuthorizerSelection ? (
                   <p className="text-xs text-muted-foreground">Add at least one authorizer before approving.</p>
                 ) : null}
 
@@ -643,7 +710,8 @@ export function RequisitionWorkspace({
             !permissions.canMarkPostedAndClosed &&
             !permissions.canCancelRequisition &&
             !permissions.canEditExpenditures &&
-            !permissions.canReviewAccounting ? (
+            !permissions.canReviewAccounting &&
+            !permissions.canSubmitInvoice ? (
               <p className="text-sm text-muted-foreground">No action needed from you right now.</p>
             ) : null}
           </CardContent>
