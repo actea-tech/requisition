@@ -24,7 +24,7 @@ export const FINANCE_DIRECT_REQUISITION_TYPE = {
 export const REQUISITION_KINDS = [
   { value: "payment", label: "Payment Requisition" },
   { value: "fund", label: "Fund Requisition (requires accounting for actual spend)" },
-  { value: "procurement", label: "Product/Service Requisition (not yet priced — no invoice yet)" },
+  { value: "procurement", label: "Product/Service Requisition" },
 ];
 
 const YES_NO = [
