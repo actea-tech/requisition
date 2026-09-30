@@ -168,6 +168,7 @@ export interface Database {
           payee_name: string | null;
           payee_contact: string | null;
           amount: number | null;
+          estimated_amount: number | null;
           currency: string;
           payment_mode: string | null;
           payment_mode_details: string | null;
@@ -220,6 +221,7 @@ export interface Database {
           payee_name?: string | null;
           payee_contact?: string | null;
           amount?: number | null;
+          estimated_amount?: number | null;
           currency?: string;
           payment_mode?: string | null;
           budget_line?: string | null;
@@ -238,6 +240,7 @@ export interface Database {
           payee_name: string | null;
           payee_contact: string | null;
           amount: number | null;
+          estimated_amount: number | null;
           currency: string;
           payment_mode: string | null;
           payment_mode_details: string | null;

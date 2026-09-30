@@ -288,6 +288,10 @@ export function RequisitionWorkspace({
   }
 
   function handleSubmitInvoice() {
+    if (!values.amount?.trim()) {
+      toast.error("Enter the invoice amount before submitting.");
+      return;
+    }
     startTransition(async () => {
       await updateRequisitionFields(requisition.id, values);
       const result = await submitProcurementInvoiceAction(requisition.id);
@@ -390,7 +394,7 @@ export function RequisitionWorkspace({
                       field={field}
                       value={values[field.field_key] ?? ""}
                       onChange={(v) => setField(field.field_key, v)}
-                      disabled={!section.editable || isPending}
+                      disabled={!section.editable || isPending || Boolean(field.locked)}
                       optionsOverride={
                         field.field_key === "currency"
                           ? currencyOptions
