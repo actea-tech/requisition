@@ -39,7 +39,14 @@ export function DynamicField({
       </Label>
 
       {spec.type === "textarea" ? (
-        <Textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} rows={3} />
+        <Textarea
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          readOnly={disabled}
+          className={disabled ? "cursor-default bg-muted/50" : undefined}
+          rows={3}
+        />
       ) : spec.type === "select" ? (
         <Select
           value={value || undefined}
@@ -64,7 +71,8 @@ export function DynamicField({
           type={spec.type === "number" ? "number" : "text"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
+          readOnly={disabled}
+          className={disabled ? "cursor-default bg-muted/50" : undefined}
         />
       )}
 
