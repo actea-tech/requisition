@@ -154,14 +154,33 @@ export function RequisitionWorkspace({
   const [requiresFullReapproval, setRequiresFullReapproval] = useState(requisition.requires_full_reapproval);
   const [isPending, startTransition] = useTransition();
 
+  // While the owner can still change the kind itself (draft/returned), the
+  // Payment Details fields and which documents panel shows should react to
+  // the in-progress "Requisition kind" selection immediately — not only
+  // after a save+reload. Once submitted, the kind is fixed and this always
+  // matches the persisted value anyway.
+  const effectiveKind: RequisitionKind = permissions.canEditDraftFields
+    ? ((values.requisition_kind as RequisitionKind) || requisition.requisition_kind)
+    : requisition.requisition_kind;
+
   // Procurement's own documents (pre-invoice) stay under their own section
   // permanently, even once the requisition moves past this stage — the
   // general "Supporting documents" panel only becomes relevant from
   // Awaiting Invoice onward for this kind (unchanged/always-on for
   // Payment/Fund).
   const isProcurementPreInvoice =
-    requisition.requisition_kind === "procurement" &&
+    effectiveKind === "procurement" &&
     ["draft", "returned", "procurement_dept_review", "procurement_finance_review"].includes(requisition.status);
+
+  const PAYMENT_STAGE_ONLY_FIELDS = new Set(["payee_name", "payee_contact", "payment_mode", "payment_mode_details"]);
+
+  // Server-computed for the (persisted, no-longer-editable) common case;
+  // while the owner can still change the kind, follow their live selection
+  // instead so the upload control appears/disappears in step with the
+  // documents panel below.
+  const canUploadProcurementDocuments = permissions.canEditDraftFields
+    ? effectiveKind === "procurement"
+    : permissions.canUploadProcurementDocuments;
 
   function setField(key: string, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -381,14 +400,27 @@ export function RequisitionWorkspace({
           </Card>
         ) : null}
 
-        {sections.map((section) =>
-          section.fields.length === 0 ? null : (
+        {sections.map((section) => {
+          // payment_details is filtered against the *live* effective kind
+          // (not the persisted one baked into `section.fields`) so it
+          // updates the instant the owner picks a different Requisition
+          // kind, before they've saved anything.
+          const fields =
+            section.key === "payment_details"
+              ? section.fields.filter((f) => {
+                  if (f.field_key === "estimated_amount") return effectiveKind === "procurement";
+                  if (f.field_key === "amount") return !isProcurementPreInvoice;
+                  if (PAYMENT_STAGE_ONLY_FIELDS.has(f.field_key)) return !isProcurementPreInvoice;
+                  return true;
+                })
+              : section.fields;
+          return fields.length === 0 ? null : (
             <Card key={section.key}>
               <CardHeader>
                 <CardTitle className="text-base">{section.label}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2">
-                {section.fields.map((field) => (
+                {fields.map((field) => (
                   <div key={field.field_key} className={field.field_key === "purpose" ? "sm:col-span-2" : ""}>
                     <DynamicField
                       field={field}
@@ -407,16 +439,15 @@ export function RequisitionWorkspace({
                 ))}
               </CardContent>
             </Card>
-          ),
-        )}
+          );
+        })}
 
-        {requisition.requisition_kind === "procurement" &&
-        (permissions.canUploadProcurementDocuments || procurementAttachments.length > 0) ? (
+        {effectiveKind === "procurement" && (canUploadProcurementDocuments || procurementAttachments.length > 0) ? (
           <AttachmentsPanel
             requisitionId={requisition.id}
             attachments={procurementAttachments}
-            canUpload={permissions.canUploadProcurementDocuments}
-            canDelete={permissions.canUploadProcurementDocuments}
+            canUpload={canUploadProcurementDocuments}
+            canDelete={canUploadProcurementDocuments}
             title="Procurement documents"
             section="procurement_documents"
             withDescription
