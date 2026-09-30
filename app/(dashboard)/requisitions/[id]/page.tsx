@@ -214,6 +214,15 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     canEditFinance && requisition.status === "procurement_finance_review";
   const canUploadAttachments = canEditDraftFields || canEditFinance || canSubmitInvoice || isAdmin;
 
+  // Procurement, before the invoice is known: this requisition hasn't
+  // reached an invoice yet, so its own documents (quotes, specs, etc.) are
+  // distinct from — and stay under their own section, permanently, once
+  // uploaded — the "Supporting documents" the invoice stage adds later.
+  const isProcurementPreInvoice =
+    requisition.requisition_kind === "procurement" &&
+    ["draft", "returned", "procurement_dept_review", "procurement_finance_review"].includes(requisition.status);
+  const canUploadProcurementDocuments = (canEditDraftFields || canEditFinance || isAdmin) && isProcurementPreInvoice;
+
   // Individual requisitions skip Department Head review entirely, so
   // there's no previous stage to return a Finance decision to.
   const previousStageLabel =
@@ -231,12 +240,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     isOwner && !canDecide && !canEditFinance && !canEditFinalProcessing && !canMarkPostedAndClosed && !isAdmin;
   const REQUESTER_VISIBLE_SECTIONS = new Set<FormSection>(["request_details", "payment_details"]);
 
-  // Procurement, before the invoice is known: Payment Details fields don't
-  // have a real figure yet, so they're visually optional (is_required was
-  // never enforced anywhere to begin with — this is cosmetic).
-  const isProcurementPreInvoice =
-    requisition.requisition_kind === "procurement" &&
-    ["draft", "returned", "procurement_dept_review", "procurement_finance_review"].includes(requisition.status);
+  // Payment Details fields don't have a real figure yet while procurement
+  // is pre-invoice, so they're visually optional (is_required was never
+  // enforced anywhere to begin with — this is cosmetic).
   const RELAXED_PAYMENT_FIELDS = new Set(["amount", "payee_name", "payee_contact", "payment_mode"]);
 
   const sections: SectionSpec[] = SECTION_DEFS.filter(
@@ -283,12 +289,11 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // section/card, separate from the requester's own supporting documents —
   // reusing the existing final_processing form_section value rather than a
   // new enum, since it already exists for exactly this part of the form.
-  // The general panel covers both 'compliance_and_support' and
-  // 'procurement_documents' together — they're the same bucket to the
-  // requester, just tagged differently depending on the requisition's kind
-  // and stage at upload time (see documentsSection in requisition-workspace.tsx).
+  // Procurement documents (pre-invoice) are their own section too, kept
+  // permanently separate from "Supporting documents" even once the
+  // requisition moves past that stage — see procurementAttachments below.
   const attachments = (attachmentsRaw ?? [])
-    .filter((a) => a.section !== "final_processing")
+    .filter((a) => a.section !== "final_processing" && a.section !== "procurement_documents")
     .map((a) => ({
       id: a.id,
       file_name: a.file_name,
@@ -299,6 +304,16 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     }));
   const paymentAttachments = (attachmentsRaw ?? [])
     .filter((a) => a.section === "final_processing")
+    .map((a) => ({
+      id: a.id,
+      file_name: a.file_name,
+      file_size: a.file_size,
+      storage_path: a.storage_path,
+      description: a.description,
+      uploaderName: nameFor(a.uploaded_by),
+    }));
+  const procurementAttachments = (attachmentsRaw ?? [])
+    .filter((a) => a.section === "procurement_documents")
     .map((a) => ({
       id: a.id,
       file_name: a.file_name,
@@ -394,6 +409,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       sections={sections}
       attachments={attachments}
       paymentAttachments={paymentAttachments}
+      procurementAttachments={procurementAttachments}
       history={history}
       expenditures={expenditures}
       permissions={{
@@ -405,6 +421,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canEditFinalProcessing,
         canMarkPostedAndClosed,
         canUploadAttachments,
+        canUploadProcurementDocuments,
         canManageAuthorizers,
         requiresAuthorizationMethodOnApprove,
         canCancelRequisition,
