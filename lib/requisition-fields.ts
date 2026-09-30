@@ -17,9 +17,14 @@ export const FINANCE_DIRECT_REQUISITION_TYPE = {
   label: "Finance (direct to authorization)",
 };
 
-const REQUISITION_KINDS = [
+// Exported: requisition-workspace.tsx needs an optionsOverride-style filter
+// for it (procurement isn't offered alongside Finance-direct routing — see
+// canRaiseFinanceDirect in app/(dashboard)/requisitions/[id]/page.tsx),
+// the same way requisition_type already works.
+export const REQUISITION_KINDS = [
   { value: "payment", label: "Payment Requisition" },
   { value: "fund", label: "Fund Requisition (requires accounting for actual spend)" },
+  { value: "procurement", label: "Product/Service Requisition (not yet priced — no invoice yet)" },
 ];
 
 const YES_NO = [

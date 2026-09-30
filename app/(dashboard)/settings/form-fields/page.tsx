@@ -10,6 +10,10 @@ const SECTION_LABELS: Record<FormSection, string> = {
   compliance_and_support: "Compliance and Support",
   finance_review: "Finance Review",
   final_processing: "Final Processing",
+  // Attachments-only section (procurement documents) — no configurable
+  // fields, so it's never added to SECTION_ORDER below; this entry exists
+  // purely to satisfy the exhaustive Record.
+  procurement_documents: "Procurement Documents",
 };
 
 const SECTION_ORDER: FormSection[] = [
