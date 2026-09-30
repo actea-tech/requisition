@@ -204,7 +204,6 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // returned straight back to them (not redirected to a previous stage).
   const canEditDraftFields =
     isOwner && (requisition.status === "draft" || (requisition.status === "returned" && !isReturnedToPreviousStage));
-  const canUploadAttachments = canEditDraftFields || canEditFinance || isAdmin;
 
   // Procurement-only: once Finance clears the budget-availability check
   // (Procurement — Finance Review), the requester adds the real invoice/
@@ -213,7 +212,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const canSubmitInvoice = isOwner && requisition.status === "awaiting_invoice";
   const canSetRequiresFullReapproval =
     canEditFinance && requisition.status === "procurement_finance_review";
-  const canUploadProcurementDocuments = canUploadAttachments || canSubmitInvoice;
+  const canUploadAttachments = canEditDraftFields || canEditFinance || canSubmitInvoice || isAdmin;
 
   // Individual requisitions skip Department Head review entirely, so
   // there's no previous stage to return a Finance decision to.
@@ -284,8 +283,12 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // section/card, separate from the requester's own supporting documents —
   // reusing the existing final_processing form_section value rather than a
   // new enum, since it already exists for exactly this part of the form.
+  // The general panel covers both 'compliance_and_support' and
+  // 'procurement_documents' together — they're the same bucket to the
+  // requester, just tagged differently depending on the requisition's kind
+  // and stage at upload time (see documentsSection in requisition-workspace.tsx).
   const attachments = (attachmentsRaw ?? [])
-    .filter((a) => a.section !== "final_processing" && a.section !== "procurement_documents")
+    .filter((a) => a.section !== "final_processing")
     .map((a) => ({
       id: a.id,
       file_name: a.file_name,
@@ -296,16 +299,6 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     }));
   const paymentAttachments = (attachmentsRaw ?? [])
     .filter((a) => a.section === "final_processing")
-    .map((a) => ({
-      id: a.id,
-      file_name: a.file_name,
-      file_size: a.file_size,
-      storage_path: a.storage_path,
-      description: a.description,
-      uploaderName: nameFor(a.uploaded_by),
-    }));
-  const procurementAttachments = (attachmentsRaw ?? [])
-    .filter((a) => a.section === "procurement_documents")
     .map((a) => ({
       id: a.id,
       file_name: a.file_name,
@@ -401,7 +394,6 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       sections={sections}
       attachments={attachments}
       paymentAttachments={paymentAttachments}
-      procurementAttachments={procurementAttachments}
       history={history}
       expenditures={expenditures}
       permissions={{
@@ -413,7 +405,6 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canEditFinalProcessing,
         canMarkPostedAndClosed,
         canUploadAttachments,
-        canUploadProcurementDocuments,
         canManageAuthorizers,
         requiresAuthorizationMethodOnApprove,
         canCancelRequisition,

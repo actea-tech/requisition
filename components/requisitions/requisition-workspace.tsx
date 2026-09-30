@@ -67,7 +67,6 @@ export function RequisitionWorkspace({
   sections,
   attachments,
   paymentAttachments,
-  procurementAttachments,
   history,
   expenditures,
   permissions,
@@ -87,7 +86,6 @@ export function RequisitionWorkspace({
   sections: SectionSpec[];
   attachments: AttachmentRow[];
   paymentAttachments: AttachmentRow[];
-  procurementAttachments: AttachmentRow[];
   history: HistoryEntry[];
   expenditures: ExpenditureRow[];
   currencyOptions: { value: string; label: string }[];
@@ -100,7 +98,6 @@ export function RequisitionWorkspace({
     canEditFinalProcessing: boolean;
     canMarkPostedAndClosed: boolean;
     canUploadAttachments: boolean;
-    canUploadProcurementDocuments: boolean;
     canManageAuthorizers: boolean;
     requiresAuthorizationMethodOnApprove: boolean;
     canCancelRequisition: boolean;
@@ -153,6 +150,18 @@ export function RequisitionWorkspace({
   const [authorizationMethod, setAuthorizationMethod] = useState("");
   const [requiresFullReapproval, setRequiresFullReapproval] = useState(requisition.requires_full_reapproval);
   const [isPending, startTransition] = useTransition();
+
+  // Reacts to the live Requisition kind selection (values.requisition_kind),
+  // not just the last-saved value — switching the channel while still
+  // editing the draft updates this immediately. Once the invoice stage is
+  // reached, it's the same "Supporting documents" bucket every other kind
+  // already uses.
+  const currentKind = (values.requisition_kind || requisition.requisition_kind) as RequisitionKind;
+  const isProcurementPreInvoice =
+    currentKind === "procurement" &&
+    ["draft", "returned", "procurement_dept_review", "procurement_finance_review"].includes(requisition.status);
+  const documentsSection = isProcurementPreInvoice ? "procurement_documents" : "compliance_and_support";
+  const documentsTitle = isProcurementPreInvoice ? "Procurement documents" : "Supporting documents";
 
   function setField(key: string, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -401,7 +410,9 @@ export function RequisitionWorkspace({
           requisitionId={requisition.id}
           attachments={attachments}
           canUpload={permissions.canUploadAttachments}
-          canDelete={permissions.isOwnerDraft}
+          canDelete={permissions.isOwnerDraft || permissions.canSubmitInvoice}
+          title={documentsTitle}
+          section={documentsSection}
         />
 
         {permissions.canEditFinalProcessing || paymentAttachments.length > 0 ? (
@@ -412,19 +423,6 @@ export function RequisitionWorkspace({
             canDelete={permissions.canEditFinalProcessing}
             title="Payment processing documents"
             section="final_processing"
-            withDescription
-          />
-        ) : null}
-
-        {requisition.requisition_kind === "procurement" &&
-        (permissions.canUploadProcurementDocuments || procurementAttachments.length > 0) ? (
-          <AttachmentsPanel
-            requisitionId={requisition.id}
-            attachments={procurementAttachments}
-            canUpload={permissions.canUploadProcurementDocuments}
-            canDelete={permissions.isOwnerDraft || permissions.canSubmitInvoice}
-            title="Procurement documents"
-            section="procurement_documents"
             withDescription
           />
         ) : null}
