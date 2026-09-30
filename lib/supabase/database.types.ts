@@ -25,7 +25,8 @@ export type ApprovalDecision =
   | "posted_and_closed"
   | "accounting_submitted"
   | "accounting_approved"
-  | "accounting_returned";
+  | "accounting_returned"
+  | "invoice_submitted";
 export type RequisitionStatus =
   | "draft"
   | "dept_review"
@@ -37,10 +38,13 @@ export type RequisitionStatus =
   | "posted_and_closed"
   | "returned"
   | "rejected"
-  | "cancelled";
+  | "cancelled"
+  | "procurement_dept_review"
+  | "procurement_finance_review"
+  | "awaiting_invoice";
 export type CancellationStatus = "requested" | "approved" | "denied";
 export type RequisitionScope = "departmental" | "individual" | "finance_direct";
-export type RequisitionKind = "payment" | "fund";
+export type RequisitionKind = "payment" | "fund" | "procurement";
 export type ExpenditureEntryType = "expense" | "balance_banked";
 export type YesNo = "yes" | "no";
 export type YesNoUnsure = "yes" | "no" | "not_sure";
@@ -51,7 +55,8 @@ export type FormSection =
   | "budget_and_coding"
   | "compliance_and_support"
   | "finance_review"
-  | "final_processing";
+  | "final_processing"
+  | "procurement_documents";
 
 export interface Database {
   public: {
@@ -195,6 +200,8 @@ export interface Database {
           cancellation_requested_by: string | null;
           related_requisition_id: string | null;
           accounting_shortfall_note: string | null;
+          requires_full_reapproval: boolean;
+          invoice_submitted_at: string | null;
           is_test: boolean;
           stage_entered_at: string;
           submitted_at: string | null;
@@ -250,6 +257,7 @@ export interface Database {
           payment_status: "pending" | "approved_for_payment" | "paid" | "posted_in_qbo" | "returned";
           requisition_kind: RequisitionKind;
           payment_reference: string | null;
+          requires_full_reapproval: boolean;
         }>;
         Relationships: [];
       };

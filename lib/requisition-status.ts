@@ -7,6 +7,9 @@ import type { RequisitionKind, RequisitionStatus } from "@/lib/supabase/database
 export const STATUS_STEPS: { status: RequisitionStatus; label: string }[] = [
   { status: "draft", label: "Draft" },
   { status: "dept_review", label: "Department Review" },
+  { status: "procurement_dept_review", label: "Procurement — Department Review" },
+  { status: "procurement_finance_review", label: "Procurement — Finance Review" },
+  { status: "awaiting_invoice", label: "Awaiting Invoice" },
   { status: "finance_review", label: "Finance Review" },
   { status: "director_review", label: "Authorization" },
   { status: "approved_for_payment", label: "Payment Processing" },
@@ -15,13 +18,27 @@ export const STATUS_STEPS: { status: RequisitionStatus; label: string }[] = [
   { status: "posted_and_closed", label: "Posted & Closed" },
 ];
 
+const PROCUREMENT_ONLY_STATUSES = new Set<RequisitionStatus>([
+  "procurement_dept_review",
+  "procurement_finance_review",
+  "awaiting_invoice",
+]);
+
 export function getStatusSteps(kind: RequisitionKind) {
-  return kind === "fund" ? STATUS_STEPS : STATUS_STEPS.filter((s) => s.status !== "accounting_review");
+  return STATUS_STEPS.filter((s) => {
+    if (s.status === "accounting_review") return kind === "fund";
+    if (PROCUREMENT_ONLY_STATUSES.has(s.status)) return kind === "procurement";
+    if (s.status === "dept_review") return kind !== "procurement";
+    return true;
+  });
 }
 
 export const STATUS_LABELS: Record<RequisitionStatus, string> = {
   draft: "Draft",
   dept_review: "Department Review",
+  procurement_dept_review: "Procurement — Department Review",
+  procurement_finance_review: "Procurement — Finance Review",
+  awaiting_invoice: "Awaiting Invoice",
   finance_review: "Finance Review",
   director_review: "Authorization",
   approved_for_payment: "Payment Processing",
@@ -36,6 +53,9 @@ export const STATUS_LABELS: Record<RequisitionStatus, string> = {
 export const STATUS_BADGE_VARIANT: Record<RequisitionStatus, "default" | "secondary" | "destructive" | "success" | "warning"> = {
   draft: "secondary",
   dept_review: "warning",
+  procurement_dept_review: "warning",
+  procurement_finance_review: "warning",
+  awaiting_invoice: "warning",
   finance_review: "warning",
   director_review: "warning",
   approved_for_payment: "warning",
@@ -50,8 +70,10 @@ export const STATUS_BADGE_VARIANT: Record<RequisitionStatus, "default" | "second
 export function stageKeyForStatus(status: RequisitionStatus): "department" | "finance" | "director" | "payment" | null {
   switch (status) {
     case "dept_review":
+    case "procurement_dept_review":
       return "department";
     case "finance_review":
+    case "procurement_finance_review":
       return "finance";
     case "director_review":
       return "director";
