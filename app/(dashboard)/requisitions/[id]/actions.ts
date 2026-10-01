@@ -18,6 +18,7 @@ const EDITABLE_FIELDS = [
   "payee_name",
   "payee_contact",
   "amount",
+  "estimated_amount",
   "currency",
   "payment_mode",
   "payment_mode_details",
