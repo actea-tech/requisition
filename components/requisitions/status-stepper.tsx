@@ -1,5 +1,5 @@
 import { Check, X } from "lucide-react";
-import { getStatusSteps } from "@/lib/requisition-status";
+import { getStatusSteps, statusLabel } from "@/lib/requisition-status";
 import type { RequisitionKind, RequisitionStatus } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
 
@@ -7,10 +7,13 @@ export function StatusStepper({
   status,
   returnedFromStage,
   requisitionKind,
+  invoiceSubmitted = false,
 }: {
   status: RequisitionStatus;
   returnedFromStage: RequisitionStatus | null;
   requisitionKind: RequisitionKind;
+  /** Set for a procurement requisition that has already passed through the invoice step once (requires_full_reapproval restart). */
+  invoiceSubmitted?: boolean;
 }) {
   const isTerminalBad = status === "returned" || status === "rejected";
   const effectiveStatus = isTerminalBad ? (returnedFromStage ?? "draft") : status;
@@ -40,7 +43,7 @@ export function StatusStepper({
               {isDone ? <Check className="size-3" /> : isCurrent && isTerminalBad ? <X className="size-3" /> : index + 1}
             </span>
             <span className={cn("text-sm", isCurrent ? "font-medium" : "text-muted-foreground")}>
-              {step.label}
+              {index === currentIndex ? statusLabel(step.status, invoiceSubmitted) : step.label}
               {isCurrent && isTerminalBad ? (
                 <span className="ml-1.5 text-xs text-destructive">
                   ({status === "rejected" ? "Rejected" : "Returned"})

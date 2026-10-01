@@ -22,7 +22,7 @@ export default async function ApprovalsPage() {
   const [{ data: requisitions }, { data: departments }, { data: requesterProfiles }] = await Promise.all([
     supabase
       .from("requisitions")
-      .select("id, requisition_number, status, purpose, amount, currency, created_at, requester_id, department_id")
+      .select("id, requisition_number, status, purpose, amount, currency, created_at, requester_id, department_id, invoice_submitted_at")
       .in("id", pendingIds ?? [])
       .order("created_at", { ascending: true }),
     supabase.from("departments").select("id, name"),

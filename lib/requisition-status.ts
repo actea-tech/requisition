@@ -50,6 +50,20 @@ export const STATUS_LABELS: Record<RequisitionStatus, string> = {
   cancelled: "Cancelled",
 };
 
+// requires_full_reapproval restarts a procurement requisition at
+// procurement_dept_review/procurement_finance_review a *second* time,
+// post-invoice — at that point it's reviewing the real numbers, not the
+// original pre-invoice pass, so it reads as plain "Department Review"/
+// "Finance Review" rather than the "Procurement — " prefixed label used
+// the first time through.
+export function statusLabel(status: RequisitionStatus, invoiceSubmitted: boolean): string {
+  if (invoiceSubmitted) {
+    if (status === "procurement_dept_review") return "Department Review";
+    if (status === "procurement_finance_review") return "Finance Review";
+  }
+  return STATUS_LABELS[status];
+}
+
 export const STATUS_BADGE_VARIANT: Record<RequisitionStatus, "default" | "secondary" | "destructive" | "success" | "warning"> = {
   draft: "secondary",
   dept_review: "warning",

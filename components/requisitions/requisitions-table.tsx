@@ -15,6 +15,7 @@ export interface RequisitionListRow {
   created_at: string;
   requesterName: string;
   departmentName: string;
+  invoice_submitted_at?: string | null;
 }
 
 export function RequisitionsTable({ rows }: { rows: RequisitionListRow[] }) {
@@ -65,7 +66,7 @@ export function RequisitionsTable({ rows }: { rows: RequisitionListRow[] }) {
               <TableCell>{row.departmentName}</TableCell>
               <TableCell>{row.amount ? `${row.currency} ${row.amount.toLocaleString()}` : "—"}</TableCell>
               <TableCell>
-                <StatusBadge status={row.status} />
+                <StatusBadge status={row.status} invoiceSubmitted={Boolean(row.invoice_submitted_at)} />
               </TableCell>
               <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
               <TableCell>
