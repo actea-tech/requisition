@@ -29,7 +29,7 @@ export function MinAuthorizerCountCard({ initialCount }: { initialCount: number 
       <CardHeader>
         <CardTitle>Minimum authorizers required</CardTitle>
         <CardDescription>
-          The Finance Accountant must select at least this many authorizers before a requisition can be cleared
+          The Finance Lead must select at least this many authorizers before a requisition can be cleared
           for authorization.
         </CardDescription>
       </CardHeader>

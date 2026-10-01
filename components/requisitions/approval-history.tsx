@@ -27,6 +27,13 @@ const DECISION_LABELS: Record<ApprovalDecision, string> = {
   invoice_submitted: "Invoice submitted",
 };
 
+// invoice_submitted/accounting_submitted are the requester's own action,
+// not a decision made "at" that stage — their stage_key is bookkeeping for
+// approval_actions' FK/eligibility plumbing only (see submit_procurement_
+// invoice/submit_requisition_accounting), so showing "at Finance" next to
+// them is misleading rather than informative.
+const NO_STAGE_LABEL_DECISIONS = new Set<ApprovalDecision>(["invoice_submitted", "accounting_submitted"]);
+
 const DECISION_VARIANT: Record<ApprovalDecision, "secondary" | "success" | "destructive" | "warning"> = {
   submitted: "secondary",
   approved: "success",
@@ -69,7 +76,9 @@ export function ApprovalHistory({ entries }: { entries: HistoryEntry[] }) {
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{entry.actorName}</span>
                   <Badge variant={DECISION_VARIANT[entry.decision]}>{DECISION_LABELS[entry.decision]}</Badge>
-                  <span className="text-xs text-muted-foreground">at {STAGE_LABELS[entry.stage_key]}</span>
+                  {NO_STAGE_LABEL_DECISIONS.has(entry.decision) ? null : (
+                    <span className="text-xs text-muted-foreground">at {STAGE_LABELS[entry.stage_key]}</span>
+                  )}
                 </div>
                 {entry.comments ? <p className="text-muted-foreground">{entry.comments}</p> : null}
               </div>

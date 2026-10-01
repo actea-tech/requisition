@@ -157,9 +157,16 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const canEditFinalProcessing =
     (stageKey === "payment" || ["paid_posted", "posted_and_closed"].includes(requisition.status)) &&
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant");
+  // The "Mark Paid" action itself, as opposed to merely editing Final
+  // Processing fields (canEditFinalProcessing, above) — only while still
+  // approved_for_payment, so the button disappears once it's actually
+  // been marked Paid rather than staying visible through later stages.
+  const canCompletePayment =
+    stageKey === "payment" &&
+    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant");
   // Second, separate step after marking Paid — the Accountant may
   // legitimately wait on further bank documents before actually posting to
-  // QBO and closing it out, so this isn't folded into canEditFinalProcessing
+  // QBO and closing it out, so this isn't folded into canCompletePayment
   // above (which only applies while still at approved_for_payment).
   const canMarkPostedAndClosed =
     requisition.status === "paid_posted" &&
@@ -441,6 +448,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canManageFinanceGroup,
         canSetDirectorAuthorization,
         canEditFinalProcessing,
+        canCompletePayment,
         canMarkPostedAndClosed,
         canUploadAttachments,
         canUploadProcurementDocuments,

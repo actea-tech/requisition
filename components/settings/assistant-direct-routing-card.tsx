@@ -25,7 +25,7 @@ export function AssistantDirectRoutingCard({ initialValue }: { initialValue: Rou
       <CardHeader>
         <CardTitle>Assistant-raised Finance-direct requests</CardTitle>
         <CardDescription>
-          A Finance Accountant&apos;s or admin&apos;s Finance-direct requisitions (e.g. payroll) always go
+          A Finance Lead&apos;s or admin&apos;s Finance-direct requisitions (e.g. payroll) always go
           straight to authorization. This decides what happens when a Finance Assistant raises one instead.
         </CardDescription>
       </CardHeader>
@@ -35,16 +35,16 @@ export function AssistantDirectRoutingCard({ initialValue }: { initialValue: Rou
           onValueChange={(v) => handleChange((v ?? "requires_accountant_approval") as Routing)}
           disabled={isPending}
           items={{
-            requires_accountant_approval: "Goes to the Finance Accountant for approval first",
-            direct: "Goes straight to authorization, same as the Accountant",
+            requires_accountant_approval: "Goes to the Finance Lead for approval first",
+            direct: "Goes straight to authorization, same as the Lead",
           }}
         >
           <SelectTrigger className="w-full max-w-md">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="requires_accountant_approval">Goes to the Finance Accountant for approval first</SelectItem>
-            <SelectItem value="direct">Goes straight to authorization, same as the Accountant</SelectItem>
+            <SelectItem value="requires_accountant_approval">Goes to the Finance Lead for approval first</SelectItem>
+            <SelectItem value="direct">Goes straight to authorization, same as the Lead</SelectItem>
           </SelectContent>
         </Select>
       </CardContent>
