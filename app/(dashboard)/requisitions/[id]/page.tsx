@@ -151,8 +151,11 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // only whoever is recorded as finance_accountant_id — matching the
   // broadened get_pending_approval_requisition_ids (migration 0042). That
   // RPC/RLS pairing is the actual gate; this is just the UI reflecting it.
+  // Stays editable through Paid and Posted & Closed too — the voucher
+  // number/QBO reference are often only available after marking Paid, and
+  // Finance may need to correct them even once closed.
   const canEditFinalProcessing =
-    stageKey === "payment" &&
+    (stageKey === "payment" || ["paid_posted", "posted_and_closed"].includes(requisition.status)) &&
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant");
   // Second, separate step after marking Paid — the Accountant may
   // legitimately wait on further bank documents before actually posting to
