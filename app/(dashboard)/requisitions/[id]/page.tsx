@@ -143,8 +143,12 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const canManageFinanceGroup =
     stageKey === "finance" && (isAdmin || profile.role === "finance_accountant" || isForwardedAssistant);
   const directorAuthMode = directorAuthModeRow?.value === "amount_threshold" ? "amount_threshold" : "accountant_discretion";
+  // Not shown at Procurement — Finance Review: director-vs-payment isn't
+  // being decided there (the amount isn't final yet) — only at the
+  // ordinary Finance Review that follows the invoice.
   const canSetDirectorAuthorization =
     stageKey === "finance" &&
+    requisition.status !== "procurement_finance_review" &&
     directorAuthMode === "accountant_discretion" &&
     (isAdmin || profile.role === "finance_accountant" || isForwardedAssistant);
   // Any active Accountant/Assistant can pick up Payment Processing — not
