@@ -197,7 +197,11 @@ export function RequisitionWorkspace({
 
   function handleSubmit() {
     startTransition(async () => {
-      await updateRequisitionFields(requisition.id, values);
+      const saveResult = await updateRequisitionFields(requisition.id, values);
+      if (saveResult.error) {
+        toast.error(saveResult.error);
+        return;
+      }
       const result = await submitRequisitionAction(requisition.id);
       if (result.error) toast.error(result.error);
       else toast.success("Requisition submitted for department review");
@@ -206,7 +210,11 @@ export function RequisitionWorkspace({
 
   function handleResubmit() {
     startTransition(async () => {
-      await updateRequisitionFields(requisition.id, values);
+      const saveResult = await updateRequisitionFields(requisition.id, values);
+      if (saveResult.error) {
+        toast.error(saveResult.error);
+        return;
+      }
       const result = await resubmitRequisitionAction(requisition.id);
       if (result.error) toast.error(result.error);
       else toast.success("Requisition resubmitted");
@@ -236,7 +244,11 @@ export function RequisitionWorkspace({
     }
     startTransition(async () => {
       if (permissions.canEditFinance) {
-        await updateRequisitionFields(requisition.id, values);
+        const saveResult = await updateRequisitionFields(requisition.id, values);
+        if (saveResult.error) {
+          toast.error(saveResult.error);
+          return;
+        }
       }
       // Deciding on a requisition returned to a previous stage (not the
       // requester): it's sitting at status='returned', which
@@ -276,7 +288,11 @@ export function RequisitionWorkspace({
 
   function handleCompletePayment() {
     startTransition(async () => {
-      await updateRequisitionFields(requisition.id, values);
+      const saveResult = await updateRequisitionFields(requisition.id, values);
+      if (saveResult.error) {
+        toast.error(saveResult.error);
+        return;
+      }
       const result = await completePaymentAction(requisition.id, comment.trim() || null);
       if (result.error) toast.error(result.error);
       else toast.success("Requisition marked as Paid");
@@ -313,7 +329,11 @@ export function RequisitionWorkspace({
       return;
     }
     startTransition(async () => {
-      await updateRequisitionFields(requisition.id, values);
+      const saveResult = await updateRequisitionFields(requisition.id, values);
+      if (saveResult.error) {
+        toast.error(saveResult.error);
+        return;
+      }
       const result = await submitProcurementInvoiceAction(requisition.id);
       if (result.error) toast.error(result.error);
       else toast.success("Invoice submitted");
