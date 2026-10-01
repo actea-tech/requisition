@@ -54,7 +54,6 @@ export interface RequisitionRowForForm {
   cancellation_reason: string | null;
   accounting_shortfall_note: string | null;
   requires_full_reapproval: boolean;
-  invoice_submitted_at: string | null;
   amount: number | null;
   currency: string;
   requesterName: string;
@@ -354,7 +353,7 @@ export function RequisitionWorkspace({
             </p>
           </div>
           <div className="flex items-center gap-2 print:hidden">
-            <StatusBadge status={requisition.status} invoiceSubmitted={Boolean(requisition.invoice_submitted_at)} />
+            <StatusBadge status={requisition.status} />
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               Print record
             </Button>
@@ -553,7 +552,7 @@ export function RequisitionWorkspace({
               status={requisition.status}
               returnedFromStage={requisition.returned_from_stage}
               requisitionKind={requisition.requisition_kind}
-              invoiceSubmitted={Boolean(requisition.invoice_submitted_at)}
+              requiresFullReapproval={requisition.requires_full_reapproval}
             />
           </CardContent>
         </Card>

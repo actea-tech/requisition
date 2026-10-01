@@ -24,7 +24,7 @@ export default async function MyRequisitionsPage({
 
   let query = supabase
     .from("requisitions")
-    .select("id, requisition_number, status, purpose, amount, currency, created_at, department_id, invoice_submitted_at")
+    .select("id, requisition_number, status, purpose, amount, currency, created_at, department_id")
     .eq("requester_id", profile.id)
     .order("created_at", { ascending: false });
 
