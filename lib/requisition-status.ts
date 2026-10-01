@@ -24,13 +24,27 @@ const PROCUREMENT_ONLY_STATUSES = new Set<RequisitionStatus>([
   "awaiting_invoice",
 ]);
 
-export function getStatusSteps(kind: RequisitionKind) {
-  return STATUS_STEPS.filter((s) => {
+const DEPT_REVIEW_STEP = STATUS_STEPS.find((s) => s.status === "dept_review")!;
+
+// requiresFullReapproval: a procurement requisition whose Finance review
+// required the department to look at it again once the real invoice/
+// amount is in — submit_procurement_invoice() then routes it through the
+// plain dept_review/finance_review statuses (not the procurement_* ones
+// used for the original, pre-invoice pass), so it reads as an ordinary
+// "Department Review" positioned after Awaiting Invoice rather than
+// implying the estimate/invoice step is being redone.
+export function getStatusSteps(kind: RequisitionKind, requiresFullReapproval = false) {
+  const steps = STATUS_STEPS.filter((s) => {
     if (s.status === "accounting_review") return kind === "fund";
     if (PROCUREMENT_ONLY_STATUSES.has(s.status)) return kind === "procurement";
     if (s.status === "dept_review") return kind !== "procurement";
     return true;
   });
+  if (kind === "procurement" && requiresFullReapproval) {
+    const invoiceIndex = steps.findIndex((s) => s.status === "awaiting_invoice");
+    steps.splice(invoiceIndex + 1, 0, DEPT_REVIEW_STEP);
+  }
+  return steps;
 }
 
 export const STATUS_LABELS: Record<RequisitionStatus, string> = {

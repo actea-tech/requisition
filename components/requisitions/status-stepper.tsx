@@ -7,14 +7,16 @@ export function StatusStepper({
   status,
   returnedFromStage,
   requisitionKind,
+  requiresFullReapproval = false,
 }: {
   status: RequisitionStatus;
   returnedFromStage: RequisitionStatus | null;
   requisitionKind: RequisitionKind;
+  requiresFullReapproval?: boolean;
 }) {
   const isTerminalBad = status === "returned" || status === "rejected";
   const effectiveStatus = isTerminalBad ? (returnedFromStage ?? "draft") : status;
-  const steps = getStatusSteps(requisitionKind);
+  const steps = getStatusSteps(requisitionKind, requiresFullReapproval);
   const currentIndex = steps.findIndex((s) => s.status === effectiveStatus);
 
   return (
