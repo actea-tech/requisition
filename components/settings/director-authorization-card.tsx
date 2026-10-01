@@ -60,7 +60,7 @@ export function DirectorAuthorizationCard({
           onValueChange={(v) => handleModeChange((v ?? "accountant_discretion") as DirectorAuthMode)}
           disabled={isPending}
           items={{
-            accountant_discretion: "Finance Accountant decides per requisition",
+            accountant_discretion: "Finance Lead decides per requisition",
             amount_threshold: "Automatic, based on amount threshold",
           }}
         >
@@ -68,7 +68,7 @@ export function DirectorAuthorizationCard({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="accountant_discretion">Finance Accountant decides per requisition</SelectItem>
+            <SelectItem value="accountant_discretion">Finance Lead decides per requisition</SelectItem>
             <SelectItem value="amount_threshold">Automatic, based on amount threshold</SelectItem>
           </SelectContent>
         </Select>

@@ -38,8 +38,8 @@ export function FinanceAssistantThresholdCard({
         <CardTitle>Assistant approval threshold</CardTitle>
         <CardDescription>
           At or below the threshold for a currency, the Finance Assistant can work on a requisition the same
-          as the Finance Accountant, with no forwarding needed. Above it, only the Accountant can act — the
-          Assistant is still notified and the Accountant can still forward it to them. A currency with no
+          as the Finance Lead, with no forwarding needed. Above it, only the Lead can act — the
+          Assistant is still notified and the Lead can still forward it to them. A currency with no
           threshold set below is effectively disabled: the Assistant can only get a requisition in that
           currency via forwarding.
         </CardDescription>

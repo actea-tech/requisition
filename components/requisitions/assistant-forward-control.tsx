@@ -46,7 +46,7 @@ export function AssistantForwardControl({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Assistant Finance Accountant</CardTitle>
+        <CardTitle className="text-base">Finance Assistant</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {forwardedTo ? (

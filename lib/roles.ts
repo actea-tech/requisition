@@ -3,8 +3,8 @@ import type { UserRole } from "@/lib/supabase/database.types";
 export const ROLE_LABELS: Record<UserRole, string> = {
   staff: "Staff",
   dept_head: "Department Head",
-  finance_accountant: "Finance Accountant",
-  finance_assistant: "Assistant Finance Accountant",
+  finance_accountant: "Finance Lead",
+  finance_assistant: "Finance Assistant",
   finance_reviewer: "Finance Reviewer",
   director: "Director",
   board: "Board Member",

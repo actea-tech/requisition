@@ -44,7 +44,7 @@ export default async function ApprovalRulesSettingsPage() {
       <StageModeCard
         stageKey="finance"
         title="Finance review"
-        description="Applies to the Finance Accountant plus anyone they add to a requisition's review group."
+        description="Applies to the Finance Lead plus anyone they add to a requisition's review group."
         initialMode={financeConfig?.mode ?? "first_approver"}
         initialQuorum={financeConfig?.quorum_count ?? null}
       />

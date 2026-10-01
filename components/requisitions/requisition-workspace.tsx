@@ -98,6 +98,7 @@ export function RequisitionWorkspace({
     canManageFinanceGroup: boolean;
     canSetDirectorAuthorization: boolean;
     canEditFinalProcessing: boolean;
+    canCompletePayment: boolean;
     canMarkPostedAndClosed: boolean;
     canUploadAttachments: boolean;
     canUploadProcurementDocuments: boolean;
@@ -730,9 +731,11 @@ export function RequisitionWorkspace({
                 <Button className="w-full" variant="outline" disabled={isPending} onClick={handleSave}>
                   Save payment details
                 </Button>
-                <Button className="w-full" disabled={isPending} onClick={handleCompletePayment}>
-                  Mark Paid
-                </Button>
+                {permissions.canCompletePayment ? (
+                  <Button className="w-full" disabled={isPending} onClick={handleCompletePayment}>
+                    Mark Paid
+                  </Button>
+                ) : null}
               </div>
             ) : null}
 
