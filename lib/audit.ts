@@ -34,7 +34,7 @@ export const AUDIT_COLUMNS = [
   "requester",
   "department",
   "purpose",
-  "payee_name",
+  "payees",
   "amount",
   "currency",
   "payment_mode",
@@ -58,8 +58,8 @@ export const AUDIT_HEADERS = [
   "Requester",
   "Department",
   "Purpose",
-  "Payee",
-  "Amount",
+  "Payee(s)",
+  "Total Amount",
   "Currency",
   "Payment Mode",
   "Budget Line",
@@ -82,10 +82,8 @@ export interface AuditSourceRow {
   requester_id: string;
   department_id: string | null;
   purpose: string | null;
-  payee_name: string | null;
   amount: number | null;
   currency: string;
-  payment_mode: string | null;
   budget_line: string | null;
   account_code: string | null;
   project_fund_class_code: string | null;
@@ -98,12 +96,36 @@ export interface AuditSourceRow {
   payment_reference: string | null;
 }
 
+export interface AuditPayee {
+  payee_name: string | null;
+  amount: number | null;
+  payment_mode: string | null;
+}
+
+// "Name (amount); Name (amount)" — one cell, since the export is one row per
+// requisition. The full per-payee detail (contact, payment mode details)
+// lives on the requisition itself and its PDF.
+function summarizePayees(payees: AuditPayee[]) {
+  const names = payees
+    .map((p) => {
+      const name = p.payee_name?.trim();
+      if (!name && p.amount == null) return "";
+      return `${name || "Unnamed payee"}${p.amount != null ? ` (${p.amount.toLocaleString()})` : ""}`;
+    })
+    .filter(Boolean)
+    .join("; ");
+  const modes = [...new Set(payees.map((p) => p.payment_mode?.trim()).filter((m): m is string => Boolean(m)))].join("; ");
+  return { names, modes };
+}
+
 export function auditRowToValues(
   r: AuditSourceRow,
   requesterName: string,
   departmentName: string,
   statusLabel: string,
+  payees: AuditPayee[] = [],
 ): (string | number)[] {
+  const { names, modes } = summarizePayees(payees);
   return [
     r.requisition_number ?? "",
     new Date(r.created_at).toISOString().slice(0, 10),
@@ -112,10 +134,10 @@ export function auditRowToValues(
     requesterName,
     departmentName,
     r.purpose ?? "",
-    r.payee_name ?? "",
+    names,
     r.amount ?? "",
     r.currency,
-    r.payment_mode ?? "",
+    modes,
     r.budget_line ?? "",
     r.account_code ?? "",
     r.project_fund_class_code ?? "",
@@ -133,7 +155,7 @@ export async function queryAuditRows(supabase: SupabaseClient<Database>, filters
   let query = supabase
     .from("requisitions")
     .select(
-      "id, requisition_number, created_at, submitted_at, status, requester_id, department_id, purpose, payee_name, amount, currency, payment_mode, budget_line, account_code, project_fund_class_code, donor_grant_source, donor_restriction, budget_available, payment_voucher_number, qbo_posting_reference, payment_status, payment_reference",
+      "id, requisition_number, created_at, submitted_at, status, requester_id, department_id, purpose, amount, currency, budget_line, account_code, project_fund_class_code, donor_grant_source, donor_restriction, budget_available, payment_voucher_number, qbo_posting_reference, payment_status, payment_reference",
     )
     .neq("status", "draft")
     .order("created_at", { ascending: false });
@@ -148,4 +170,27 @@ export async function queryAuditRows(supabase: SupabaseClient<Database>, filters
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+// requisition_payees for a set of requisitions, grouped by requisition id.
+// Fetched in chunks: an `in (...)` filter goes in the request URL, so a few
+// hundred ids at once would run past URL length limits.
+export async function queryPayeesByRequisition(supabase: SupabaseClient<Database>, requisitionIds: string[]) {
+  const byRequisition = new Map<string, AuditPayee[]>();
+  const CHUNK = 100;
+  for (let i = 0; i < requisitionIds.length; i += CHUNK) {
+    const { data, error } = await supabase
+      .from("requisition_payees")
+      .select("requisition_id, payee_name, amount, payment_mode")
+      .in("requisition_id", requisitionIds.slice(i, i + CHUNK))
+      .order("sort_order")
+      .order("created_at");
+    if (error) throw new Error(error.message);
+    for (const row of data ?? []) {
+      const list = byRequisition.get(row.requisition_id) ?? [];
+      list.push({ payee_name: row.payee_name, amount: row.amount, payment_mode: row.payment_mode });
+      byRequisition.set(row.requisition_id, list);
+    }
+  }
+  return byRequisition;
 }

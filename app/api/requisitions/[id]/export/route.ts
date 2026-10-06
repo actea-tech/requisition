@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import Papa from "papaparse";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
-import { AUDIT_HEADERS, auditRowToValues } from "@/lib/audit";
+import { AUDIT_HEADERS, auditRowToValues, queryPayeesByRequisition } from "@/lib/audit";
 import { STATUS_LABELS } from "@/lib/requisition-status";
 import type { RequisitionStatus } from "@/lib/supabase/database.types";
 
@@ -37,11 +37,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       : Promise.resolve({ data: null }),
   ]);
 
+  const payees = (await queryPayeesByRequisition(supabase, [id])).get(id) ?? [];
+
   const dataRow = auditRowToValues(
     requisition,
     requesterProfile?.full_name ?? "",
     department?.name ?? "",
     STATUS_LABELS[requisition.status as RequisitionStatus] ?? requisition.status,
+    payees,
   );
 
   const filenameBase = requisition.requisition_number ?? id;

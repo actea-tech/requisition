@@ -9,6 +9,7 @@ import {
 } from "@/components/requisitions/requisition-workspace";
 import type { FormSection } from "@/lib/supabase/database.types";
 import { REQUISITION_TYPES, FINANCE_DIRECT_REQUISITION_TYPE } from "@/lib/requisition-fields";
+import { PAYEE_FIELD_KEYS } from "@/lib/payees";
 
 const SECTION_DEFS: { key: FormSection; label: string }[] = [
   { key: "request_details", label: "Request Details" },
@@ -43,6 +44,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: expendituresRaw },
     { data: paymentCancellationSettingRow },
     { count: departmentHeadCount },
+    { data: payeesRaw },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -80,6 +82,12 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
           .select("user_id", { count: "exact", head: true })
           .eq("department_id", requisition.department_id)
       : Promise.resolve({ count: 0 }),
+    supabase
+      .from("requisition_payees")
+      .select("id, payee_name, payee_contact, amount, payment_mode, payment_mode_details")
+      .eq("requisition_id", id)
+      .order("sort_order")
+      .order("created_at"),
   ]);
 
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
@@ -254,12 +262,25 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     isOwner && !canDecide && !canEditFinance && !canEditFinalProcessing && !canMarkPostedAndClosed && !isAdmin;
   const REQUESTER_VISIBLE_SECTIONS = new Set<FormSection>(["request_details", "payment_details"]);
 
-  // None of the payee/payment-mode details exist yet while procurement is
-  // pre-invoice — only Currency is relevant alongside the estimate — so
-  // Payment Details is trimmed down to just Estimated amount + Currency
-  // until the invoice exists, rather than showing fields with nothing
-  // meaningful to enter yet.
-  const PAYMENT_STAGE_ONLY_FIELDS = new Set(["payee_name", "payee_contact", "payment_mode", "payment_mode_details"]);
+  // Payee name/contact, amount and payment mode are no longer plain form
+  // fields: a requisition can have several payees, so those five render as
+  // a repeatable block (PayeesEditor) instead — their labels/help text/
+  // required flags still come from Settings > Form Fields, just not as part
+  // of the generic field grid. While procurement is pre-invoice only the
+  // estimate + currency show; the payee blocks appear from Awaiting Invoice.
+  const PAYEE_FIELD_KEY_SET = new Set<string>(PAYEE_FIELD_KEYS);
+  const payeeFields = PAYEE_FIELD_KEYS.map((key) => {
+    const f = (fieldConfig ?? []).find((c) => c.section === "payment_details" && c.field_key === key);
+    return { field_key: key, label: f?.label ?? key, help_text: f?.help_text ?? null, is_required: f?.is_required ?? false };
+  });
+  const payees = (payeesRaw ?? []).map((p) => ({
+    key: p.id,
+    payee_name: p.payee_name ?? "",
+    payee_contact: p.payee_contact ?? "",
+    amount: p.amount === null ? "" : String(p.amount),
+    payment_mode: p.payment_mode ?? "",
+    payment_mode_details: p.payment_mode_details ?? "",
+  }));
 
   const sections: SectionSpec[] = SECTION_DEFS.filter(
     ({ key }) => !restrictToRequesterView || REQUESTER_VISIBLE_SECTIONS.has(key),
@@ -292,11 +313,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
           // progress "Requisition kind" selection instead of only updating
           // after a save+reload.
           (f.field_key !== "estimated_amount" || requisition.requisition_kind === "procurement" || canEditDraftFields) &&
-          // The real amount, payee, and payment-mode details don't exist
-          // yet pre-invoice — estimated_amount + currency cover that window
-          // instead.
-          (f.field_key !== "amount" || !isProcurementPreInvoice || canEditDraftFields) &&
-          (!PAYMENT_STAGE_ONLY_FIELDS.has(f.field_key) || !isProcurementPreInvoice || canEditDraftFields) &&
+          !(f.section === "payment_details" && PAYEE_FIELD_KEY_SET.has(f.field_key)) &&
           (!restrictToRequesterView || f.is_visible),
       )
       .map((f) => ({
@@ -440,6 +457,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     <RequisitionWorkspace
       requisition={requisitionForForm}
       sections={sections}
+      payees={payees}
+      payeeFields={payeeFields}
       attachments={attachments}
       paymentAttachments={paymentAttachments}
       procurementAttachments={procurementAttachments}

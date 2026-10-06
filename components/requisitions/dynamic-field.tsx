@@ -21,6 +21,7 @@ export function DynamicField({
   onChange,
   disabled,
   optionsOverride,
+  idSuffix,
 }: {
   field: FieldMeta;
   value: string;
@@ -28,10 +29,12 @@ export function DynamicField({
   disabled: boolean;
   /** Replaces the field's static FIELD_SPECS options with a DB-backed list (e.g. currencies). */
   optionsOverride?: { value: string; label: string }[];
+  /** Keeps element ids unique when the same field renders more than once on a page (e.g. one block per payee). */
+  idSuffix?: string;
 }) {
   const spec = FIELD_SPECS[field.field_key] ?? { type: "text" as const };
   const options = optionsOverride ?? spec.options ?? [];
-  const id = `field-${field.field_key}`;
+  const id = `field-${field.field_key}${idSuffix ? `-${idSuffix}` : ""}`;
 
   return (
     <div className="space-y-1.5">

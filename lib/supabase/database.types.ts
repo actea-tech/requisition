@@ -291,6 +291,39 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      requisition_payees: {
+        Row: {
+          id: string;
+          requisition_id: string;
+          sort_order: number;
+          payee_name: string | null;
+          payee_contact: string | null;
+          amount: number | null;
+          payment_mode: string | null;
+          payment_mode_details: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          requisition_id: string;
+          sort_order?: number;
+          payee_name?: string | null;
+          payee_contact?: string | null;
+          amount?: number | null;
+          payment_mode?: string | null;
+          payment_mode_details?: string | null;
+        };
+        Update: Partial<{
+          sort_order: number;
+          payee_name: string | null;
+          payee_contact: string | null;
+          amount: number | null;
+          payment_mode: string | null;
+          payment_mode_details: string | null;
+        }>;
+        Relationships: [];
+      };
       finance_approver_group: {
         Row: { requisition_id: string; user_id: string; added_by: string | null; created_at: string };
         Insert: { requisition_id: string; user_id: string; added_by?: string | null };
@@ -484,6 +517,10 @@ export interface Database {
       };
       notify_assistant_forwarded: {
         Args: { p_requisition_id: string; p_assistant_id: string };
+        Returns: void;
+      };
+      replace_requisition_payees: {
+        Args: { p_requisition_id: string; p_payees: Json };
         Returns: void;
       };
       clear_must_change_password: { Args: Record<string, never>; Returns: void };

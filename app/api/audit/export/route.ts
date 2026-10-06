@@ -3,7 +3,13 @@ import Papa from "papaparse";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { canViewAudit } from "@/lib/roles";
-import { AUDIT_HEADERS, auditRowToValues, parseAuditFilters, queryAuditRows } from "@/lib/audit";
+import {
+  AUDIT_HEADERS,
+  auditRowToValues,
+  parseAuditFilters,
+  queryAuditRows,
+  queryPayeesByRequisition,
+} from "@/lib/audit";
 import { STATUS_LABELS } from "@/lib/requisition-status";
 import type { RequisitionStatus } from "@/lib/supabase/database.types";
 
@@ -29,6 +35,10 @@ export async function GET(request: NextRequest) {
     supabase.from("profiles").select("id, full_name"),
   ]);
 
+  const payeesByRequisition = await queryPayeesByRequisition(
+    supabase,
+    rows.map((r) => r.id),
+  );
   const departmentById = new Map((departments ?? []).map((d) => [d.id, d.name]));
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
 
@@ -38,6 +48,7 @@ export async function GET(request: NextRequest) {
       profileById.get(r.requester_id) ?? "",
       (r.department_id && departmentById.get(r.department_id)) ?? "",
       STATUS_LABELS[r.status as RequisitionStatus] ?? r.status,
+      payeesByRequisition.get(r.id) ?? [],
     ),
   );
 
