@@ -82,6 +82,8 @@ const styles = StyleSheet.create({
     borderBottom: `1 solid ${BRAND.border}`,
   },
   row: { flexDirection: "row", marginBottom: 7 },
+  payeeBlock: { marginBottom: 6, paddingTop: 2 },
+  payeeTitle: { fontSize: 8.5, fontWeight: 700, marginBottom: 6 },
   label: { width: 160, color: BRAND.muted },
   value: { flex: 1, fontWeight: 500 },
   historyHeaderRow: { flexDirection: "row", paddingBottom: 6, borderBottom: `1 solid ${BRAND.border}` },
@@ -111,12 +113,16 @@ export interface RequisitionPdfData {
   departmentName: string;
   purpose: string | null;
   activity_project: string | null;
-  payee_name: string | null;
-  payee_contact: string | null;
+  payees: {
+    payee_name: string | null;
+    payee_contact: string | null;
+    amount: number | null;
+    payment_mode: string | null;
+    payment_mode_details: string | null;
+  }[];
+  /** Total across all payees (requisitions.amount). */
   amount: number | null;
   currency: string;
-  payment_mode: string | null;
-  payment_mode_details: string | null;
   budget_line: string | null;
   account_code: string | null;
   project_fund_class_code: string | null;
@@ -212,11 +218,23 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
         </Section>
 
         <Section title="Payment Details">
-          <Field label="Amount" value={data.amount != null ? `${data.currency} ${data.amount.toLocaleString()}` : null} />
-          <Field label="Payee" value={data.payee_name} />
-          <Field label="Payee contact" value={data.payee_contact} />
-          <Field label="Payment mode" value={data.payment_mode} />
-          <Field label="Payment mode details" value={data.payment_mode_details} />
+          {data.payees.map((payee, i) => (
+            <View key={i} style={styles.payeeBlock} wrap={false}>
+              {data.payees.length > 1 ? <Text style={styles.payeeTitle}>Payee {i + 1}</Text> : null}
+              <Field label="Payee" value={payee.payee_name} />
+              <Field label="Payee contact" value={payee.payee_contact} />
+              <Field
+                label="Amount"
+                value={payee.amount != null ? `${data.currency} ${payee.amount.toLocaleString()}` : null}
+              />
+              <Field label="Payment mode" value={payee.payment_mode} />
+              <Field label="Payment mode details" value={payee.payment_mode_details} />
+            </View>
+          ))}
+          <Field
+            label={data.payees.length > 1 ? "Total payment" : "Amount"}
+            value={data.amount != null ? `${data.currency} ${data.amount.toLocaleString()}` : null}
+          />
         </Section>
 
         <Section title="Budget and Coding">

@@ -15,13 +15,8 @@ const EDITABLE_FIELDS = [
   "requisition_kind",
   "purpose",
   "activity_project",
-  "payee_name",
-  "payee_contact",
-  "amount",
   "estimated_amount",
   "currency",
-  "payment_mode",
-  "payment_mode_details",
   "budget_line",
   "account_code",
   "project_fund_class_code",
@@ -39,7 +34,26 @@ const EDITABLE_FIELDS = [
   "payment_reference",
 ] as const;
 
-export async function updateRequisitionFields(requisitionId: string, values: Record<string, unknown>) {
+export type PayeeInput = {
+  payee_name: string;
+  payee_contact: string;
+  amount: string;
+  payment_mode: string;
+  payment_mode_details: string;
+};
+
+// payees: the requisition's full payee list, saved atomically alongside the
+// other fields — pass it only when the caller is actually allowed to edit
+// payees (omit it otherwise, so a Finance save/decision never touches them).
+// Payee name/contact/amount/payment mode live in requisition_payees now, not
+// the requisitions columns, so they're deliberately not in EDITABLE_FIELDS;
+// requisitions.amount is the total of the payee amounts, maintained by the
+// database.
+export async function updateRequisitionFields(
+  requisitionId: string,
+  values: Record<string, unknown>,
+  payees?: PayeeInput[],
+) {
   await requireProfile();
   const supabase = await createClient();
 
@@ -53,8 +67,17 @@ export async function updateRequisitionFields(requisitionId: string, values: Rec
 
   const { error } = await supabase.from("requisitions").update(update).eq("id", requisitionId);
 
+  let payeesError: string | null = null;
+  if (!error && payees) {
+    const { error: rpcError } = await supabase.rpc("replace_requisition_payees", {
+      p_requisition_id: requisitionId,
+      p_payees: payees,
+    });
+    payeesError = rpcError?.message ?? null;
+  }
+
   revalidatePath(`/requisitions/${requisitionId}`);
-  return { error: error?.message ?? null };
+  return { error: error?.message ?? payeesError };
 }
 
 export async function submitRequisitionAction(requisitionId: string) {

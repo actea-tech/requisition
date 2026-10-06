@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DynamicField, type FieldMeta } from "@/components/requisitions/dynamic-field";
+import { PayeesEditor } from "@/components/requisitions/payees-editor";
+import { emptyPayee, payeesTotal, type PayeeRow } from "@/lib/payees";
 import { StatusStepper } from "@/components/requisitions/status-stepper";
 import { StatusBadge } from "@/components/requisitions/status-badge";
 import { ApprovalHistory, type HistoryEntry } from "@/components/requisitions/approval-history";
@@ -65,6 +67,8 @@ export interface RequisitionRowForForm {
 export function RequisitionWorkspace({
   requisition,
   sections,
+  payees: initialPayees,
+  payeeFields,
   attachments,
   paymentAttachments,
   procurementAttachments,
@@ -85,6 +89,8 @@ export function RequisitionWorkspace({
 }: {
   requisition: RequisitionRowForForm;
   sections: SectionSpec[];
+  payees: PayeeRow[];
+  payeeFields: FieldMeta[];
   attachments: AttachmentRow[];
   paymentAttachments: AttachmentRow[];
   procurementAttachments: AttachmentRow[];
@@ -150,6 +156,11 @@ export function RequisitionWorkspace({
     }
     return initial;
   });
+  // Always at least one payee block to type into; the server skips a block
+  // that's left entirely blank.
+  const [payees, setPayees] = useState<PayeeRow[]>(() =>
+    initialPayees.length > 0 ? initialPayees : [emptyPayee("payee-initial")],
+  );
   const [comment, setComment] = useState("");
   const [authorizationMethod, setAuthorizationMethod] = useState("");
   const [requiresFullReapproval, setRequiresFullReapproval] = useState(requisition.requires_full_reapproval);
@@ -173,7 +184,25 @@ export function RequisitionWorkspace({
     effectiveKind === "procurement" &&
     ["draft", "returned", "procurement_dept_review", "procurement_finance_review"].includes(requisition.status);
 
-  const PAYMENT_STAGE_ONLY_FIELDS = new Set(["payee_name", "payee_contact", "payment_mode", "payment_mode_details"]);
+  // Payee blocks (one per payee, summing to the requisition's total) replace
+  // the old single-payee fields, and appear once there's something real to
+  // pay — i.e. not during procurement's pre-invoice stages.
+  const paymentSection = sections.find((s) => s.key === "payment_details");
+  const showPayees = Boolean(paymentSection) && !isProcurementPreInvoice;
+  const payeesEditable = Boolean(paymentSection?.editable) && !isPending;
+  const currencyValue = values.currency || requisition.currency;
+  // Only sent on save when the caller can actually edit them — a Finance
+  // save/decision at review must never touch the payee list.
+  const payeesPayload =
+    showPayees && paymentSection?.editable
+      ? payees.map((p) => ({
+          payee_name: p.payee_name,
+          payee_contact: p.payee_contact,
+          amount: p.amount,
+          payment_mode: p.payment_mode,
+          payment_mode_details: p.payment_mode_details,
+        }))
+      : undefined;
 
   // Server-computed for the (persisted, no-longer-editable) common case;
   // while the owner can still change the kind, follow their live selection
@@ -189,7 +218,7 @@ export function RequisitionWorkspace({
 
   function handleSave() {
     startTransition(async () => {
-      const result = await updateRequisitionFields(requisition.id, values);
+      const result = await updateRequisitionFields(requisition.id, values, payeesPayload);
       if (result.error) toast.error(result.error);
       else toast.success("Changes saved");
     });
@@ -197,7 +226,7 @@ export function RequisitionWorkspace({
 
   function handleSubmit() {
     startTransition(async () => {
-      const saveResult = await updateRequisitionFields(requisition.id, values);
+      const saveResult = await updateRequisitionFields(requisition.id, values, payeesPayload);
       if (saveResult.error) {
         toast.error(saveResult.error);
         return;
@@ -210,7 +239,7 @@ export function RequisitionWorkspace({
 
   function handleResubmit() {
     startTransition(async () => {
-      const saveResult = await updateRequisitionFields(requisition.id, values);
+      const saveResult = await updateRequisitionFields(requisition.id, values, payeesPayload);
       if (saveResult.error) {
         toast.error(saveResult.error);
         return;
@@ -244,7 +273,7 @@ export function RequisitionWorkspace({
     }
     startTransition(async () => {
       if (permissions.canEditFinance) {
-        const saveResult = await updateRequisitionFields(requisition.id, values);
+        const saveResult = await updateRequisitionFields(requisition.id, values, payeesPayload);
         if (saveResult.error) {
           toast.error(saveResult.error);
           return;
@@ -288,7 +317,7 @@ export function RequisitionWorkspace({
 
   function handleCompletePayment() {
     startTransition(async () => {
-      const saveResult = await updateRequisitionFields(requisition.id, values);
+      const saveResult = await updateRequisitionFields(requisition.id, values, payeesPayload);
       if (saveResult.error) {
         toast.error(saveResult.error);
         return;
@@ -324,12 +353,12 @@ export function RequisitionWorkspace({
   }
 
   function handleSubmitInvoice() {
-    if (!values.amount?.trim()) {
+    if (!(payeesTotal(payees) > 0)) {
       toast.error("Enter the invoice amount before submitting.");
       return;
     }
     startTransition(async () => {
-      const saveResult = await updateRequisitionFields(requisition.id, values);
+      const saveResult = await updateRequisitionFields(requisition.id, values, payeesPayload);
       if (saveResult.error) {
         toast.error(saveResult.error);
         return;
@@ -430,12 +459,11 @@ export function RequisitionWorkspace({
             section.key === "payment_details"
               ? section.fields.filter((f) => {
                   if (f.field_key === "estimated_amount") return effectiveKind === "procurement";
-                  if (f.field_key === "amount") return !isProcurementPreInvoice;
-                  if (PAYMENT_STAGE_ONLY_FIELDS.has(f.field_key)) return !isProcurementPreInvoice;
                   return true;
                 })
               : section.fields;
-          return fields.length === 0 ? null : (
+          const withPayees = section.key === "payment_details" && showPayees;
+          return fields.length === 0 && !withPayees ? null : (
             <Card key={section.key}>
               <CardHeader>
                 <CardTitle className="text-base">{section.label}</CardTitle>
@@ -447,7 +475,14 @@ export function RequisitionWorkspace({
                       field={field}
                       value={values[field.field_key] ?? ""}
                       onChange={(v) => setField(field.field_key, v)}
-                      disabled={!section.editable || isPending || Boolean(field.locked)}
+                      disabled={
+                        !section.editable ||
+                        isPending ||
+                        Boolean(field.locked) ||
+                        // One currency per requisition: once there's more
+                        // than one payee, it's fixed for all of them.
+                        (field.field_key === "currency" && showPayees && payees.length > 1)
+                      }
                       optionsOverride={
                         field.field_key === "currency"
                           ? currencyOptions
@@ -458,6 +493,15 @@ export function RequisitionWorkspace({
                     />
                   </div>
                 ))}
+                {withPayees ? (
+                  <PayeesEditor
+                    payees={payees}
+                    onChange={setPayees}
+                    fields={payeeFields}
+                    editable={payeesEditable}
+                    currency={currencyValue}
+                  />
+                ) : null}
               </CardContent>
             </Card>
           );
