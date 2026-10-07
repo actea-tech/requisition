@@ -203,6 +203,7 @@ export interface Database {
           accounting_shortfall_note: string | null;
           requires_full_reapproval: boolean;
           invoice_submitted_at: string | null;
+          authorizers_ordered: boolean;
           is_test: boolean;
           stage_entered_at: string;
           submitted_at: string | null;
@@ -389,7 +390,7 @@ export interface Database {
         Relationships: [];
       };
       requisition_authorizers: {
-        Row: { requisition_id: string; user_id: string; added_by: string | null; created_at: string };
+        Row: { requisition_id: string; user_id: string; added_by: string | null; created_at: string; sort_order: number };
         Insert: { requisition_id: string; user_id: string; added_by?: string | null };
         Update: never;
         Relationships: [];
@@ -517,6 +518,14 @@ export interface Database {
       };
       notify_assistant_forwarded: {
         Args: { p_requisition_id: string; p_assistant_id: string };
+        Returns: void;
+      };
+      set_authorizers_ordered: {
+        Args: { p_requisition_id: string; p_actor_id: string; p_ordered: boolean };
+        Returns: void;
+      };
+      move_requisition_authorizer: {
+        Args: { p_requisition_id: string; p_actor_id: string; p_user_id: string; p_direction: number };
         Returns: void;
       };
       replace_requisition_payees: {

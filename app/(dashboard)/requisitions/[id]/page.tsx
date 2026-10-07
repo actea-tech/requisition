@@ -66,7 +66,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       : Promise.resolve({ data: null }),
     supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
     supabase.from("currencies").select("code").order("code"),
-    supabase.from("requisition_authorizers").select("user_id").eq("requisition_id", id),
+    supabase.from("requisition_authorizers").select("user_id, sort_order").eq("requisition_id", id).order("sort_order"),
     supabase.from("authorizer_pool").select("user_id"),
     supabase.from("authorization_methods").select("id, label").order("sort_order"),
     supabase.from("finance_assistant_forwards").select("assistant_id").eq("requisition_id", id),
@@ -189,9 +189,33 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // Assistant too, so whoever raised/is handling a Finance-direct
   // requisition can pick authorizers themselves (matches
   // requisition_authorizers_write's RLS, migration 0031).
+  // A Finance Assistant can see every submitted requisition but only acts
+  // on the ones that are theirs to work: raised by them, cleared by them,
+  // forwarded to them, within their threshold (that's what makes them an
+  // eligible approver at Finance), or from Payment Processing onwards.
+  // Mirrors finance_assistant_may_act() in the database, which the
+  // authorizer RPCs enforce.
+  const assistantMayAct =
+    profile.role !== "finance_assistant" ||
+    isOwner ||
+    isForwardedAssistant ||
+    requisition.finance_accountant_id === profile.id ||
+    isEligibleApprover ||
+    ["approved_for_payment", "paid_posted", "accounting_review", "posted_and_closed"].includes(requisition.status);
+  // Also at Payment Processing: adding someone there reopens the
+  // requisition for their authorization.
   const canManageAuthorizers =
-    (stageKey === "finance" || stageKey === "director") &&
-    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant");
+    (stageKey === "finance" || stageKey === "director" || requisition.status === "approved_for_payment") &&
+    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
+    assistantMayAct;
+  // Who has already authorized in the current round (the order of anyone
+  // who has can no longer change), and whether the order can still be set.
+  const approvedAuthorizerIds = (historyRaw ?? [])
+    .filter((h) => h.stage_key === "director" && h.decision === "approved" && h.created_at >= requisition.stage_entered_at)
+    .map((h) => h.actor_id);
+  const authorizerOrderEditable =
+    canManageAuthorizers &&
+    ["finance_review", "procurement_finance_review", "director_review"].includes(requisition.status);
   const requiresAuthorizationMethodOnApprove = stageKey === "director";
 
   // Finance can cancel outright up until it's fully authorized; past that
@@ -203,6 +227,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const paymentStageCancellationEnabled = paymentCancellationSettingRow?.value === "yes";
   const canCancelRequisition =
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
+    assistantMayAct &&
     !["paid_posted", "posted_and_closed", "cancelled"].includes(requisition.status) &&
     (requisition.status !== "approved_for_payment" || paymentStageCancellationEnabled);
   const canDecideCancellation = (isAdmin || profile.role === "director") && requisition.cancellation_status === "requested";
@@ -492,6 +517,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       previousStageLabel={previousStageLabel}
       currencyOptions={currencyOptions}
       authorizerGroup={authorizerGroup}
+      approvedAuthorizerIds={approvedAuthorizerIds}
+      authorizerOrderEditable={authorizerOrderEditable}
       authorizerCandidates={authorizerCandidates}
       requesterId={requisition.requester_id}
       authorizationMethodOptions={authorizationMethodOptions}
