@@ -117,10 +117,10 @@ export function AuthorizerGroupPanel({
             Select 1–4 people to authorize this payment — nobody is selected for you, so include the Director
             if they should authorize. All of them must approve before it moves to payment processing. By
             default they&apos;re all notified at once and can authorize in any order; tick &ldquo;Authorize in
-            sequence&rdquo; to have them go one after another in the order listed. You can still add or remove
-            someone later — even after it&apos;s fully authorized or
-            already at Payment Processing (e.g. if an authorizer can&apos;t access the platform) — adding someone
-            at that point reopens it until they&apos;ve approved too.
+            sequence&rdquo; to have them go one after another in the order listed. You can add another authorizer
+            later — even after it&apos;s fully authorized or already at Payment Processing — which reopens it until
+            they&apos;ve authorized too. Anyone who hasn&apos;t authorized yet can still be removed or reordered;
+            once someone has authorized they stay.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -200,9 +200,17 @@ export function AuthorizerGroupPanel({
                               </Button>
                             </>
                           ) : null}
-                          <Button variant="ghost" size="icon-sm" disabled={isPending} onClick={() => doRemove(m.id)}>
-                            <Trash2 className="size-4" />
-                          </Button>
+                {isApproved ? null : (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Remove authorizer"
+                              disabled={isPending}
+                              onClick={() => doRemove(m.id)}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          )}
                         </span>
                       </li>
                     );
