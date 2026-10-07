@@ -56,6 +56,7 @@ export interface RequisitionRowForForm {
   cancellation_reason: string | null;
   accounting_shortfall_note: string | null;
   requires_full_reapproval: boolean;
+  authorizers_ordered: boolean;
   amount: number | null;
   currency: string;
   requesterName: string;
@@ -80,6 +81,8 @@ export function RequisitionWorkspace({
   previousStageLabel,
   currencyOptions,
   authorizerGroup,
+  approvedAuthorizerIds,
+  authorizerOrderEditable,
   authorizerCandidates,
   requesterId,
   authorizationMethodOptions,
@@ -124,6 +127,10 @@ export function RequisitionWorkspace({
   financeCandidates: { id: string; full_name: string }[];
   previousStageLabel: string | null;
   authorizerGroup: { id: string; full_name: string }[];
+  /** Authorizers who have already authorized in the current round. */
+  approvedAuthorizerIds: string[];
+  /** Whether Finance can still set/reorder the authorization sequence (Finance review, or out for authorization). */
+  authorizerOrderEditable: boolean;
   authorizerCandidates: { id: string; full_name: string }[];
   requesterId: string;
   authorizationMethodOptions: { value: string; label: string }[];
@@ -577,6 +584,10 @@ export function RequisitionWorkspace({
           <AuthorizerGroupPanel
             requisitionId={requisition.id}
             members={authorizerGroup}
+            ordered={requisition.authorizers_ordered}
+            approvedIds={approvedAuthorizerIds}
+            orderEditable={authorizerOrderEditable}
+            outForAuthorization={requisition.status === "director_review"}
             candidates={authorizerCandidates}
             requesterId={requesterId}
             disabled={requiresDirectorAuth === "no"}

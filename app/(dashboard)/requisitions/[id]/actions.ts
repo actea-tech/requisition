@@ -239,6 +239,29 @@ export async function removeRequisitionAuthorizer(requisitionId: string, userId:
 // already selected are no longer relevant — clear them so a later switch
 // back to Yes starts from an empty, deliberate selection rather than
 // stale picks.
+export async function setAuthorizersOrderedAction(requisitionId: string, ordered: boolean) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_authorizers_ordered", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+    p_ordered: ordered,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+export async function moveRequisitionAuthorizer(requisitionId: string, userId: string, direction: -1 | 1) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("move_requisition_authorizer", {
+    p_requisition_id: requisitionId,
+    p_actor_id: profile.id,
+    p_user_id: userId,
+    p_direction: direction,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
 export async function clearRequisitionAuthorizers(requisitionId: string) {
   await requireProfile();
   const supabase = await createClient();
