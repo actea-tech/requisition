@@ -169,6 +169,8 @@ export function RequisitionWorkspace({
     initialPayees.length > 0 ? initialPayees : [emptyPayee("payee-initial")],
   );
   const [comment, setComment] = useState("");
+  // Optional note from whoever is resubmitting a returned requisition.
+  const [resubmitComment, setResubmitComment] = useState("");
   const [authorizationMethod, setAuthorizationMethod] = useState("");
   const [requiresFullReapproval, setRequiresFullReapproval] = useState(requisition.requires_full_reapproval);
   const [isPending, startTransition] = useTransition();
@@ -251,9 +253,12 @@ export function RequisitionWorkspace({
         toast.error(saveResult.error);
         return;
       }
-      const result = await resubmitRequisitionAction(requisition.id);
+      const result = await resubmitRequisitionAction(requisition.id, resubmitComment);
       if (result.error) toast.error(result.error);
-      else toast.success("Requisition resubmitted");
+      else {
+        toast.success("Requisition resubmitted");
+        setResubmitComment("");
+      }
     });
   }
 
@@ -646,6 +651,19 @@ export function RequisitionWorkspace({
                 <Button className="w-full" variant="outline" disabled={isPending} onClick={handleSave}>
                   Save changes
                 </Button>
+                {requisition.status === "returned" ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="resubmit-comment">Comment (optional)</Label>
+                    <Textarea
+                      id="resubmit-comment"
+                      value={resubmitComment}
+                      onChange={(e) => setResubmitComment(e.target.value)}
+                      disabled={isPending}
+                      rows={3}
+                      placeholder="e.g. what you changed, or the document you added"
+                    />
+                  </div>
+                ) : null}
                 <Button
                   className="w-full"
                   disabled={isPending}

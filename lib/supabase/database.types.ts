@@ -447,7 +447,10 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       submit_requisition: { Args: { p_requisition_id: string; p_actor_id: string }; Returns: void };
-      resubmit_requisition: { Args: { p_requisition_id: string; p_actor_id: string }; Returns: void };
+      resubmit_requisition: {
+        Args: { p_requisition_id: string; p_actor_id: string; p_comments?: string | null };
+        Returns: void;
+      };
       record_approval_action: {
         Args: {
           p_requisition_id: string;
