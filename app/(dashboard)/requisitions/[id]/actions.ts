@@ -91,12 +91,13 @@ export async function submitRequisitionAction(requisitionId: string) {
   return { error: error?.message ?? null };
 }
 
-export async function resubmitRequisitionAction(requisitionId: string) {
+export async function resubmitRequisitionAction(requisitionId: string, comments?: string | null) {
   const profile = await requireProfile();
   const supabase = await createClient();
   const { error } = await supabase.rpc("resubmit_requisition", {
     p_requisition_id: requisitionId,
     p_actor_id: profile.id,
+    p_comments: comments?.trim() || null,
   });
   revalidatePath(`/requisitions/${requisitionId}`);
   return { error: error?.message ?? null };
