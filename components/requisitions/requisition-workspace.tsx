@@ -73,6 +73,7 @@ export function RequisitionWorkspace({
   attachments,
   paymentAttachments,
   procurementAttachments,
+  allowedFileTypes,
   history,
   expenditures,
   permissions,
@@ -97,6 +98,8 @@ export function RequisitionWorkspace({
   attachments: AttachmentRow[];
   paymentAttachments: AttachmentRow[];
   procurementAttachments: AttachmentRow[];
+  /** File type ids switched on in Settings > Approval Rules. */
+  allowedFileTypes: string[];
   history: HistoryEntry[];
   expenditures: ExpenditureRow[];
   currencyOptions: { value: string; label: string }[];
@@ -528,6 +531,7 @@ export function RequisitionWorkspace({
             title="Procurement documents"
             section="procurement_documents"
             withDescription
+            allowedFileTypes={allowedFileTypes}
           />
         ) : null}
 
@@ -537,6 +541,7 @@ export function RequisitionWorkspace({
             attachments={attachments}
             canUpload={permissions.canUploadAttachments}
             canDelete={permissions.isOwnerDraft || permissions.canSubmitInvoice}
+            allowedFileTypes={allowedFileTypes}
           />
         ) : null}
 
@@ -544,11 +549,19 @@ export function RequisitionWorkspace({
           <AttachmentsPanel
             requisitionId={requisition.id}
             attachments={paymentAttachments}
-            canUpload={permissions.canEditFinalProcessing}
-            canDelete={permissions.canEditFinalProcessing}
+            // Once Posted & Closed these are a permanent record: nothing can
+            // be added or removed (the database enforces this too).
+            canUpload={permissions.canEditFinalProcessing && requisition.status !== "posted_and_closed"}
+            canDelete={permissions.canEditFinalProcessing && requisition.status !== "posted_and_closed"}
             title="Payment processing documents"
             section="final_processing"
             withDescription
+            allowedFileTypes={allowedFileTypes}
+            lockedMessage={
+              requisition.status === "posted_and_closed"
+                ? "This requisition is closed — its payment processing documents are a permanent record and can't be added to or removed."
+                : undefined
+            }
           />
         ) : null}
 
@@ -561,6 +574,7 @@ export function RequisitionWorkspace({
             canEdit={permissions.canEditExpenditures}
             canSubmit={permissions.canEditExpenditures}
             canSendReminder={permissions.canSendAccountingReminder}
+            allowedFileTypes={allowedFileTypes}
           />
         ) : null}
 

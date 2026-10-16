@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { acceptAttribute, describeFileTypes, isFileTypeAllowed, unsupportedFileMessage } from "@/lib/file-types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,6 +33,7 @@ export function ExpenditureAccountingPanel({
   canEdit,
   canSubmit,
   canSendReminder,
+  allowedFileTypes,
 }: {
   requisitionId: string;
   amount: number | null;
@@ -43,6 +45,8 @@ export function ExpenditureAccountingPanel({
   canSubmit: boolean;
   /** Finance, while the requester hasn't submitted yet. */
   canSendReminder: boolean;
+  /** File type ids switched on in Settings > Approval Rules. */
+  allowedFileTypes: string[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -73,6 +77,11 @@ export function ExpenditureAccountingPanel({
     formData.set("amount", String(amt));
     formData.set("entryType", entryType);
     const file = fileInputRef.current?.files?.[0];
+    if (file && !isFileTypeAllowed(file.name, allowedFileTypes)) {
+      setError(unsupportedFileMessage(file.name, allowedFileTypes));
+      setIsUploading(false);
+      return;
+    }
     if (file) formData.set("file", file);
 
     try {
@@ -218,9 +227,13 @@ export function ExpenditureAccountingPanel({
             <input
               ref={fileInputRef}
               type="file"
+              accept={acceptAttribute(allowedFileTypes)}
               disabled={isUploading}
               className="text-sm file:mr-3 file:rounded-md file:border file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium"
             />
+            <p className="text-xs text-muted-foreground">
+              Receipt (optional) — supported file types: {describeFileTypes(allowedFileTypes)}
+            </p>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button variant="outline" className="w-full" disabled={isUploading} onClick={handleAddLine}>
               {isUploading ? "Adding…" : "Add line"}

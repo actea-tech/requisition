@@ -324,9 +324,13 @@ export async function decideCancellationAction(requisitionId: string, approve: b
 export async function deleteAttachment(attachmentId: string, storagePath: string, requisitionId: string) {
   await requireProfile();
   const supabase = await createClient();
+  // Record first: the database refuses it for a closed requisition's payment
+  // documents (a permanent record), and the stored file must survive that.
+  const { error } = await supabase.from("requisition_attachments").delete().eq("id", attachmentId);
+  if (error) return { error: error.message };
   await supabase.storage.from("requisition-attachments").remove([storagePath]);
-  await supabase.from("requisition_attachments").delete().eq("id", attachmentId);
   revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: null };
 }
 
 export async function deleteExpenditure(expenditureId: string, storagePath: string | null, requisitionId: string) {

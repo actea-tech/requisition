@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import { sanitizeFileNameForStorageKey } from "@/lib/storage";
+import { isFileTypeAllowed, loadAllowedFileTypes, unsupportedFileMessage } from "@/lib/file-types";
 
 // Plain Route Handler (not a Server Action) so the client can drive the
 // upload via XMLHttpRequest and get real byte-level progress — fetch/
@@ -20,6 +21,11 @@ export async function POST(request: NextRequest) {
 
   if (!file || file.size === 0 || !requisitionId) {
     return NextResponse.json({ error: "file and requisitionId are required" }, { status: 400 });
+  }
+
+  const allowedFileTypes = await loadAllowedFileTypes(supabase);
+  if (!isFileTypeAllowed(file.name, allowedFileTypes)) {
+    return NextResponse.json({ error: unsupportedFileMessage(file.name, allowedFileTypes) }, { status: 400 });
   }
 
   const storagePath = `${requisitionId}/${randomUUID()}-${sanitizeFileNameForStorageKey(file.name)}`;
