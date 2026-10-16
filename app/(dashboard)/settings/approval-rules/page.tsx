@@ -4,6 +4,8 @@ import { DirectorAuthorizationCard } from "@/components/settings/director-author
 import { FinanceAssistantThresholdCard } from "@/components/settings/finance-assistant-threshold-card";
 import { PaymentStageCancellationCard } from "@/components/settings/payment-stage-cancellation-card";
 import { NewRequisitionsToggleCard } from "@/components/settings/new-requisitions-toggle-card";
+import { AllowedFileTypesCard } from "@/components/settings/allowed-file-types-card";
+import { loadAllowedFileTypes } from "@/lib/file-types";
 
 export default async function ApprovalRulesSettingsPage() {
   const supabase = await createClient();
@@ -15,6 +17,7 @@ export default async function ApprovalRulesSettingsPage() {
     { data: currenciesRaw },
     { data: paymentCancellationRow },
     { data: newRequisitionsRow },
+    allowedFileTypes,
   ] = await Promise.all([
     supabase.from("approval_stage_config").select("stage_key, mode, quorum_count").is("department_id", null),
     supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
@@ -23,6 +26,7 @@ export default async function ApprovalRulesSettingsPage() {
     supabase.from("currencies").select("code").order("code"),
     supabase.from("app_settings").select("value").eq("key", "payment_stage_cancellation_enabled").maybeSingle(),
     supabase.from("app_settings").select("value").eq("key", "new_requisitions_enabled").maybeSingle(),
+    loadAllowedFileTypes(supabase),
   ]);
 
   const financeConfig = config?.find((c) => c.stage_key === "finance");
@@ -58,6 +62,8 @@ export default async function ApprovalRulesSettingsPage() {
       <FinanceAssistantThresholdCard thresholds={assistantThresholds ?? []} currencyOptions={currencyOptions} />
 
       <PaymentStageCancellationCard initialEnabled={paymentStageCancellationEnabled} />
+
+      <AllowedFileTypesCard initialAllowed={allowedFileTypes} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { deleteAttachment, getAttachmentSignedUrl } from "@/app/(dashboard)/requisitions/[id]/actions";
 import type { FormSection } from "@/lib/supabase/database.types";
+import { acceptAttribute, describeFileTypes, isFileTypeAllowed, unsupportedFileMessage } from "@/lib/file-types";
 
 export interface AttachmentRow {
   id: string;
@@ -59,6 +60,8 @@ export function AttachmentsPanel({
   title = "Supporting documents",
   section = "compliance_and_support",
   withDescription = false,
+  allowedFileTypes,
+  lockedMessage,
 }: {
   requisitionId: string;
   attachments: AttachmentRow[];
@@ -67,6 +70,10 @@ export function AttachmentsPanel({
   title?: string;
   section?: FormSection;
   withDescription?: boolean;
+  /** File type ids switched on in Settings > Approval Rules. */
+  allowedFileTypes: string[];
+  /** Shown instead of the upload control when nothing more can be added. */
+  lockedMessage?: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -80,6 +87,12 @@ export function AttachmentsPanel({
     if (files.length === 0) return;
 
     setError(null);
+    const unsupported = files.find((f) => !isFileTypeAllowed(f.name, allowedFileTypes));
+    if (unsupported) {
+      setError(unsupportedFileMessage(unsupported.name, allowedFileTypes));
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     for (let i = 0; i < files.length; i++) {
       setUploading({ index: i + 1, total: files.length, name: files[i].name });
       const { error: uploadError } = await uploadOne(files[i], requisitionId, section, description);
@@ -129,8 +142,13 @@ export function AttachmentsPanel({
                       <Button
                         variant="ghost"
                         size="icon-sm"
+                        disabled={isPending}
                         onClick={() =>
-                          startTransition(() => deleteAttachment(a.id, a.storage_path, requisitionId))
+                          startTransition(async () => {
+                            setError(null);
+                            const result = await deleteAttachment(a.id, a.storage_path, requisitionId);
+                            if (result.error) setError(result.error);
+                          })
                         }
                       >
                         <Trash2 className="size-4" />
@@ -167,15 +185,24 @@ export function AttachmentsPanel({
               <input
                 ref={fileInputRef}
                 type="file"
+                accept={acceptAttribute(allowedFileTypes)}
                 multiple={withDescription}
                 onChange={handleFileChange}
                 disabled={isPending}
                 className="text-sm file:mr-3 file:rounded-md file:border file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium"
               />
             )}
+            <p className="text-xs text-muted-foreground">
+              Supported file types: {describeFileTypes(allowedFileTypes)}
+            </p>
             {error ? <p className="mt-1 text-sm text-destructive">{error}</p> : null}
           </div>
-        ) : null}
+        ) : (
+          <>
+            {lockedMessage ? <p className="text-xs text-muted-foreground">{lockedMessage}</p> : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          </>
+        )}
       </CardContent>
     </Card>
   );

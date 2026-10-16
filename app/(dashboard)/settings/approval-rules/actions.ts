@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/session";
 import type { ApprovalMode, ApprovalStageKey } from "@/lib/supabase/database.types";
+import { ALLOWED_FILE_TYPES_SETTING_KEY, FILE_TYPE_OPTIONS, serializeAllowedFileTypes } from "@/lib/file-types";
 
 export async function setGlobalStageMode(
   stageKey: ApprovalStageKey,
@@ -99,5 +100,20 @@ export async function setNewRequisitionsEnabled(enabled: boolean) {
 
   revalidatePath("/settings/approval-rules");
   revalidatePath("/requisitions/new");
+  return { error: error?.message ?? null };
+}
+
+export async function setAllowedFileTypes(ids: string[]) {
+  await requireAdmin();
+  const known = new Set(FILE_TYPE_OPTIONS.map((o) => o.id));
+  const valid = ids.filter((id) => known.has(id));
+  if (valid.length === 0) return { error: "At least one file type must stay switched on." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert({ key: ALLOWED_FILE_TYPES_SETTING_KEY, value: serializeAllowedFileTypes(valid) });
+
+  revalidatePath("/settings/approval-rules");
   return { error: error?.message ?? null };
 }

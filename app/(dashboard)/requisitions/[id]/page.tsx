@@ -10,6 +10,7 @@ import {
 import type { FormSection } from "@/lib/supabase/database.types";
 import { REQUISITION_TYPES, FINANCE_DIRECT_REQUISITION_TYPE } from "@/lib/requisition-fields";
 import { PAYEE_FIELD_KEYS } from "@/lib/payees";
+import { loadAllowedFileTypes } from "@/lib/file-types";
 
 const SECTION_DEFS: { key: FormSection; label: string }[] = [
   { key: "request_details", label: "Request Details" },
@@ -45,6 +46,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: paymentCancellationSettingRow },
     { count: departmentHeadCount },
     { data: payeesRaw },
+    allowedFileTypes,
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -88,6 +90,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       .eq("requisition_id", id)
       .order("sort_order")
       .order("created_at"),
+    loadAllowedFileTypes(supabase),
   ]);
 
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
@@ -487,6 +490,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       attachments={attachments}
       paymentAttachments={paymentAttachments}
       procurementAttachments={procurementAttachments}
+      allowedFileTypes={allowedFileTypes}
       history={history}
       expenditures={expenditures}
       permissions={{
