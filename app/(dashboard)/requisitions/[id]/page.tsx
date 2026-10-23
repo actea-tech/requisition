@@ -273,10 +273,18 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     ["draft", "returned", "procurement_dept_review", "procurement_finance_review"].includes(requisition.status);
   const canUploadProcurementDocuments = (canEditDraftFields || canEditFinance || isAdmin) && isProcurementPreInvoice;
 
-  // Individual requisitions skip Department Head review entirely, so
-  // there's no previous stage to return a Finance decision to.
+  // Individual requisitions skip Department Head review entirely — and so
+  // does a Departmental one raised by its own department head — so there's
+  // no previous stage to return a Finance decision to in either case.
+  const { count: requesterHeadCount } = requisition.department_id
+    ? await supabase
+        .from("department_heads")
+        .select("user_id", { count: "exact", head: true })
+        .eq("department_id", requisition.department_id)
+        .eq("user_id", requisition.requester_id)
+    : { count: 0 };
   const previousStageLabel =
-    stageKey === "finance" && requisition.requisition_type === "departmental"
+    stageKey === "finance" && requisition.requisition_type === "departmental" && (requesterHeadCount ?? 0) === 0
       ? "Department Head"
       : stageKey === "director"
         ? "Finance"
