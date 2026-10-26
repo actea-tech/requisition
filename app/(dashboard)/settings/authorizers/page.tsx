@@ -1,14 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import { AuthorizerPoolPanel } from "@/components/settings/authorizer-pool-panel";
+import { SupervisorPoolPanel } from "@/components/settings/supervisor-pool-panel";
 import { MinAuthorizerCountCard } from "@/components/settings/min-authorizer-count-card";
 import { AuthorizationMethodsPanel } from "@/components/settings/authorization-methods-panel";
 import { AssistantDirectRoutingCard } from "@/components/settings/assistant-direct-routing-card";
 
 export default async function AuthorizersSettingsPage() {
   const supabase = await createClient();
-  const [{ data: poolRaw }, { data: allProfiles }, { data: minCountRow }, { data: methodsRaw }, { data: routingRow }] =
-    await Promise.all([
+  const [
+    { data: poolRaw },
+    { data: supervisorPoolRaw },
+    { data: allProfiles },
+    { data: minCountRow },
+    { data: methodsRaw },
+    { data: routingRow },
+  ] = await Promise.all([
       supabase.from("authorizer_pool").select("user_id"),
+      supabase.from("supervisor_pool").select("user_id"),
       supabase.from("profiles").select("id, full_name, role").eq("is_active", true).order("full_name"),
       supabase.from("app_settings").select("value").eq("key", "min_authorizer_count").maybeSingle(),
       supabase.from("authorization_methods").select("id, label").order("sort_order"),
@@ -17,6 +25,14 @@ export default async function AuthorizersSettingsPage() {
 
   const poolIds = new Set((poolRaw ?? []).map((p) => p.user_id));
   const members = (allProfiles ?? []).filter((p) => poolIds.has(p.id)).map((p) => ({ id: p.id, full_name: p.full_name }));
+  const supervisorIds = new Set((supervisorPoolRaw ?? []).map((p) => p.user_id));
+  const supervisorMembers = (allProfiles ?? [])
+    .filter((p) => supervisorIds.has(p.id))
+    .map((p) => ({ id: p.id, full_name: p.full_name }));
+  const supervisorCandidates = (allProfiles ?? [])
+    .filter((p) => !supervisorIds.has(p.id))
+    .map((p) => ({ id: p.id, full_name: p.full_name }));
+
   // The active Director is already always an eligible authorizer
   // automatically — exclude them from the pool picker so nobody adds a
   // no-op entry.
@@ -32,6 +48,7 @@ export default async function AuthorizersSettingsPage() {
         requisition.
       </p>
       <AuthorizerPoolPanel members={members} candidates={candidates} />
+      <SupervisorPoolPanel members={supervisorMembers} candidates={supervisorCandidates} />
       <MinAuthorizerCountCard initialCount={Number(minCountRow?.value ?? 2)} />
       <AuthorizationMethodsPanel methods={methodsRaw ?? []} />
       <AssistantDirectRoutingCard

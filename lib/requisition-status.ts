@@ -33,7 +33,13 @@ const DEPT_REVIEW_STEP = STATUS_STEPS.find((s) => s.status === "dept_review")!;
 // used for the original, pre-invoice pass), so it reads as an ordinary
 // "Department Review" positioned after Awaiting Invoice rather than
 // implying the estimate/invoice step is being redone.
-export function getStatusSteps(kind: RequisitionKind, requiresFullReapproval = false) {
+// When the requester chose supervisors, the department-review position is
+// reviewed by them rather than a department head.
+export function supervisorReviewLabel(label: string): string {
+  return label.replace("Department Review", "Supervisor Review");
+}
+
+export function getStatusSteps(kind: RequisitionKind, requiresFullReapproval = false, supervisorReview = false) {
   const steps = STATUS_STEPS.filter((s) => {
     if (s.status === "accounting_review") return kind === "fund";
     if (PROCUREMENT_ONLY_STATUSES.has(s.status)) return kind === "procurement";
@@ -44,7 +50,13 @@ export function getStatusSteps(kind: RequisitionKind, requiresFullReapproval = f
     const invoiceIndex = steps.findIndex((s) => s.status === "awaiting_invoice");
     steps.splice(invoiceIndex + 1, 0, DEPT_REVIEW_STEP);
   }
-  return steps;
+  return supervisorReview
+    ? steps.map((s) =>
+        s.status === "dept_review" || s.status === "procurement_dept_review"
+          ? { ...s, label: supervisorReviewLabel(s.label) }
+          : s,
+      )
+    : steps;
 }
 
 export const STATUS_LABELS: Record<RequisitionStatus, string> = {

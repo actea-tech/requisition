@@ -47,6 +47,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { count: departmentHeadCount },
     { data: payeesRaw },
     allowedFileTypes,
+    { data: supervisorPoolRaw },
+    { data: supervisorsRaw },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -91,6 +93,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       .order("sort_order")
       .order("created_at"),
     loadAllowedFileTypes(supabase),
+    supabase.from("supervisor_pool").select("user_id"),
+    supabase.from("requisition_supervisors").select("user_id").eq("requisition_id", id),
   ]);
 
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
@@ -283,12 +287,38 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         .eq("department_id", requisition.department_id)
         .eq("user_id", requisition.requester_id)
     : { count: 0 };
+  const requesterIsDeptHead = (requesterHeadCount ?? 0) > 0;
+
+  // Supervisors the requester chose to review this first (an exception:
+  // mainly Individual requisitions, or a department head wanting someone's
+  // input). They only take part where there's no regular department review.
+  const supervisors = (supervisorsRaw ?? []).map((s) => ({ id: s.user_id, full_name: nameFor(s.user_id) }));
+  const usesSupervisors =
+    requisition.requisition_type !== "finance_direct" &&
+    supervisors.length > 0 &&
+    !(requisition.requisition_type === "departmental" && !requesterIsDeptHead);
+  const supervisorPoolIds = new Set((supervisorPoolRaw ?? []).map((p) => p.user_id));
+  const supervisorCandidates = (allProfiles ?? [])
+    .filter(
+      (p) =>
+        p.is_active &&
+        supervisorPoolIds.has(p.id) &&
+        p.id !== requisition.requester_id &&
+        p.is_test_user === requisition.is_test,
+    )
+    .map((p) => ({ id: p.id, full_name: p.full_name }));
+  const approvedSupervisorIds = (historyRaw ?? [])
+    .filter((h) => h.stage_key === "department" && h.decision === "approved" && h.created_at >= requisition.stage_entered_at)
+    .map((h) => h.actor_id);
+
   const previousStageLabel =
-    stageKey === "finance" && requisition.requisition_type === "departmental" && (requesterHeadCount ?? 0) === 0
+    stageKey === "finance" && requisition.requisition_type === "departmental" && !requesterIsDeptHead
       ? "Department Head"
-      : stageKey === "director"
-        ? "Finance"
-        : null;
+      : stageKey === "finance" && usesSupervisors
+        ? "Supervisor"
+        : stageKey === "director"
+          ? "Finance"
+          : null;
 
   // Field/section visibility toggles (Settings > Form Fields) are a
   // requester-facing convenience only — from department head upward,
@@ -499,6 +529,11 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       paymentAttachments={paymentAttachments}
       procurementAttachments={procurementAttachments}
       allowedFileTypes={allowedFileTypes}
+      supervisors={supervisors}
+      supervisorCandidates={supervisorCandidates}
+      approvedSupervisorIds={approvedSupervisorIds}
+      requesterIsDeptHead={requesterIsDeptHead}
+      usesSupervisors={usesSupervisors}
       history={history}
       expenditures={expenditures}
       permissions={{

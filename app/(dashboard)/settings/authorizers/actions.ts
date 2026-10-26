@@ -56,3 +56,18 @@ export async function deleteAuthorizationMethod(id: string) {
   await supabase.from("authorization_methods").delete().eq("id", id);
   revalidatePath("/settings/authorizers");
 }
+
+export async function addToSupervisorPool(userId: string) {
+  const profile = await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.from("supervisor_pool").insert({ user_id: userId, added_by: profile.id });
+  revalidatePath("/settings/authorizers");
+  return { error: error?.message ?? null };
+}
+
+export async function removeFromSupervisorPool(userId: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("supervisor_pool").delete().eq("user_id", userId);
+  revalidatePath("/settings/authorizers");
+}

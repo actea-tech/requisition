@@ -388,3 +388,14 @@ export async function getAttachmentSignedUrl(storagePath: string) {
     .createSignedUrl(storagePath, 60 * 5);
   return data?.signedUrl ?? null;
 }
+
+export async function setRequisitionSupervisorsAction(requisitionId: string, userIds: string[]) {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_requisition_supervisors", {
+    p_requisition_id: requisitionId,
+    p_user_ids: userIds,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}

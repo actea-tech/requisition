@@ -325,6 +325,18 @@ export interface Database {
         }>;
         Relationships: [];
       };
+      supervisor_pool: {
+        Row: { user_id: string; added_by: string | null; created_at: string };
+        Insert: { user_id: string; added_by?: string | null };
+        Update: never;
+        Relationships: [];
+      };
+      requisition_supervisors: {
+        Row: { requisition_id: string; user_id: string; added_by: string | null; created_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       finance_approver_group: {
         Row: { requisition_id: string; user_id: string; added_by: string | null; created_at: string };
         Insert: { requisition_id: string; user_id: string; added_by?: string | null };
@@ -529,6 +541,10 @@ export interface Database {
       };
       move_requisition_authorizer: {
         Args: { p_requisition_id: string; p_actor_id: string; p_user_id: string; p_direction: number };
+        Returns: void;
+      };
+      set_requisition_supervisors: {
+        Args: { p_requisition_id: string; p_user_ids: string[] };
         Returns: void;
       };
       replace_requisition_payees: {

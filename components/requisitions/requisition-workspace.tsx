@@ -18,6 +18,7 @@ import { ApprovalHistory, type HistoryEntry } from "@/components/requisitions/ap
 import { AttachmentsPanel, type AttachmentRow } from "@/components/requisitions/attachments-panel";
 import { FinanceGroupPanel } from "@/components/requisitions/finance-group-panel";
 import { AuthorizerGroupPanel } from "@/components/requisitions/authorizer-group-panel";
+import { SupervisorsPanel } from "@/components/requisitions/supervisors-panel";
 import { AssistantForwardControl } from "@/components/requisitions/assistant-forward-control";
 import { CancelRequisitionControl } from "@/components/requisitions/cancel-requisition-control";
 import { ExpenditureAccountingPanel, type ExpenditureRow } from "@/components/requisitions/expenditure-accounting-panel";
@@ -74,6 +75,11 @@ export function RequisitionWorkspace({
   paymentAttachments,
   procurementAttachments,
   allowedFileTypes,
+  supervisors,
+  supervisorCandidates,
+  approvedSupervisorIds,
+  requesterIsDeptHead,
+  usesSupervisors,
   history,
   expenditures,
   permissions,
@@ -100,6 +106,15 @@ export function RequisitionWorkspace({
   procurementAttachments: AttachmentRow[];
   /** File type ids switched on in Settings > Approval Rules. */
   allowedFileTypes: string[];
+  /** Supervisors the requester chose to review this before Finance (optional). */
+  supervisors: { id: string; full_name: string }[];
+  /** Everyone on the supervisor list the requester may pick (not themselves). */
+  supervisorCandidates: { id: string; full_name: string }[];
+  approvedSupervisorIds: string[];
+  /** The requester is the head of the requisition's department (so there's no regular department review). */
+  requesterIsDeptHead: boolean;
+  /** The chosen supervisors actually take part (as saved). */
+  usesSupervisors: boolean;
   history: HistoryEntry[];
   expenditures: ExpenditureRow[];
   currencyOptions: { value: string; label: string }[];
@@ -186,6 +201,18 @@ export function RequisitionWorkspace({
   const effectiveKind: RequisitionKind = permissions.canEditDraftFields
     ? ((values.requisition_kind as RequisitionKind) || requisition.requisition_kind)
     : requisition.requisition_kind;
+
+  // Supervisors can be chosen where there's no regular department review:
+  // an Individual requisition, or one raised by the department head. While
+  // the requester can still change the type, follow their live selection.
+  const effectiveType = String(
+    permissions.canEditDraftFields ? (values.requisition_type ?? requisition.requisition_type) : requisition.requisition_type,
+  );
+  const supervisorsApplicable =
+    effectiveType === "individual" || (effectiveType === "departmental" && requesterIsDeptHead);
+  const supervisorReview = permissions.canEditDraftFields
+    ? supervisorsApplicable && supervisors.length > 0
+    : usesSupervisors;
 
   // Procurement's own documents (pre-invoice) stay under their own section
   // permanently, even once the requisition moves past this stage — the
@@ -397,7 +424,7 @@ export function RequisitionWorkspace({
             </p>
           </div>
           <div className="flex items-center gap-2 print:hidden">
-            <StatusBadge status={requisition.status} />
+            <StatusBadge status={requisition.status} supervisorReview={supervisorReview} />
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               Print record
             </Button>
@@ -522,6 +549,18 @@ export function RequisitionWorkspace({
           );
         })}
 
+        {(permissions.canEditDraftFields
+          ? supervisorsApplicable && (supervisorCandidates.length > 0 || supervisors.length > 0)
+          : usesSupervisors) ? (
+          <SupervisorsPanel
+            requisitionId={requisition.id}
+            selected={supervisors}
+            candidates={supervisorCandidates}
+            approvedIds={approvedSupervisorIds}
+            editable={permissions.canEditDraftFields}
+          />
+        ) : null}
+
         {effectiveKind === "procurement" && (canUploadProcurementDocuments || procurementAttachments.length > 0) ? (
           <AttachmentsPanel
             requisitionId={requisition.id}
@@ -627,6 +666,7 @@ export function RequisitionWorkspace({
               returnedFromStage={requisition.returned_from_stage}
               requisitionKind={requisition.requisition_kind}
               requiresFullReapproval={requisition.requires_full_reapproval}
+              supervisorReview={supervisorReview}
             />
           </CardContent>
         </Card>
