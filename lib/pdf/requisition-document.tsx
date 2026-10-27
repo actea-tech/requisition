@@ -29,6 +29,7 @@ const DECISION_LABELS: Record<string, string> = {
   accounting_submitted: "Accounting submitted",
   accounting_approved: "Accounting approved",
   accounting_returned: "Accounting returned",
+  commented: "Comment (copied in)",
 };
 
 const BRAND = {

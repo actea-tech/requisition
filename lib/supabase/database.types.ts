@@ -26,7 +26,8 @@ export type ApprovalDecision =
   | "accounting_submitted"
   | "accounting_approved"
   | "accounting_returned"
-  | "invoice_submitted";
+  | "invoice_submitted"
+  | "commented";
 export type RequisitionStatus =
   | "draft"
   | "dept_review"
@@ -337,6 +338,12 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      requisition_copied_in: {
+        Row: { requisition_id: string; user_id: string; added_by: string | null; created_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       finance_approver_group: {
         Row: { requisition_id: string; user_id: string; added_by: string | null; created_at: string };
         Insert: { requisition_id: string; user_id: string; added_by?: string | null };
@@ -545,6 +552,14 @@ export interface Database {
       };
       set_requisition_supervisors: {
         Args: { p_requisition_id: string; p_user_ids: string[] };
+        Returns: void;
+      };
+      set_requisition_copied_in: {
+        Args: { p_requisition_id: string; p_user_ids: string[] };
+        Returns: void;
+      };
+      add_requisition_comment: {
+        Args: { p_requisition_id: string; p_comment: string };
         Returns: void;
       };
       replace_requisition_payees: {

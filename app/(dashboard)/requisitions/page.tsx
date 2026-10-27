@@ -11,6 +11,7 @@ const TABS = [
   { key: "active", label: "In Progress" },
   { key: "accounting", label: "Accounting" },
   { key: "done", label: "Closed" },
+  { key: "copied", label: "Copied in" },
 ] as const;
 
 export default async function MyRequisitionsPage({
@@ -22,11 +23,19 @@ export default async function MyRequisitionsPage({
   const profile = await requireProfile();
   const supabase = await createClient();
 
+  // "Copied in" lists other people's requisitions you follow; every other tab
+  // is your own.
+  let copiedInIds: string[] = [];
+  if (tab === "copied") {
+    const { data: copiedRows } = await supabase.from("requisition_copied_in").select("requisition_id").eq("user_id", profile.id);
+    copiedInIds = (copiedRows ?? []).map((c) => c.requisition_id);
+  }
+
   let query = supabase
     .from("requisitions")
-    .select("id, requisition_number, status, purpose, amount, currency, created_at, department_id")
-    .eq("requester_id", profile.id)
+    .select("id, requisition_number, status, purpose, amount, currency, created_at, department_id, requester_id")
     .order("created_at", { ascending: false });
+  query = tab === "copied" ? query.in("id", copiedInIds).neq("status", "draft") : query.eq("requester_id", profile.id);
 
   if (tab === "draft") query = query.in("status", ["draft", "returned"]);
   else if (tab === "active")
@@ -51,16 +60,18 @@ export default async function MyRequisitionsPage({
   // Closed step), so only genuinely terminal statuses belong here now.
   else if (tab === "done") query = query.in("status", ["posted_and_closed", "rejected"]);
 
-  const [{ data: requisitions }, { data: departments }] = await Promise.all([
+  const [{ data: requisitions }, { data: departments }, { data: requesters }] = await Promise.all([
     query,
     supabase.from("departments").select("id, name"),
+    tab === "copied" ? supabase.from("profiles").select("id, full_name") : Promise.resolve({ data: null }),
   ]);
+  const requesterNameById = new Map((requesters ?? []).map((p) => [p.id, p.full_name]));
 
   const departmentById = new Map((departments ?? []).map((d) => [d.id, d.name]));
 
   const rows = (requisitions ?? []).map((r) => ({
     ...r,
-    requesterName: profile.full_name,
+    requesterName: requesterNameById.get(r.requester_id) ?? profile.full_name,
     departmentName: (r.department_id && departmentById.get(r.department_id)) ?? "—",
   }));
 
