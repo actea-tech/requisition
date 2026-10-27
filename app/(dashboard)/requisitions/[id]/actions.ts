@@ -399,3 +399,25 @@ export async function setRequisitionSupervisorsAction(requisitionId: string, use
   revalidatePath(`/requisitions/${requisitionId}`);
   return { error: error?.message ?? null };
 }
+
+export async function setRequisitionCopiedInAction(requisitionId: string, userIds: string[]) {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_requisition_copied_in", {
+    p_requisition_id: requisitionId,
+    p_user_ids: userIds,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
+export async function addRequisitionCommentAction(requisitionId: string, comment: string) {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_requisition_comment", {
+    p_requisition_id: requisitionId,
+    p_comment: comment,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}

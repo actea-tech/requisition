@@ -49,6 +49,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     allowedFileTypes,
     { data: supervisorPoolRaw },
     { data: supervisorsRaw },
+    { data: copiedInRaw },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -95,6 +96,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     loadAllowedFileTypes(supabase),
     supabase.from("supervisor_pool").select("user_id"),
     supabase.from("requisition_supervisors").select("user_id").eq("requisition_id", id),
+    supabase.from("requisition_copied_in").select("user_id").eq("requisition_id", id),
   ]);
 
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
@@ -310,6 +312,17 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const approvedSupervisorIds = (historyRaw ?? [])
     .filter((h) => h.stage_key === "department" && h.decision === "approved" && h.created_at >= requisition.stage_entered_at)
     .map((h) => h.actor_id);
+
+  // People the requester copied in: they follow the requisition (read-only,
+  // an email at every stage) and can comment, but take no part in approval.
+  const copiedIn = (copiedInRaw ?? []).map((c) => ({ id: c.user_id, full_name: nameFor(c.user_id) }));
+  const isCopiedIn = copiedIn.some((c) => c.id === profile.id) && requisition.status !== "draft";
+  // The requester can change who's copied in right up until it's closed.
+  const canManageCopiedIn = isOwner && !["posted_and_closed", "cancelled", "rejected"].includes(requisition.status);
+  const copiedInCandidates = (allProfiles ?? [])
+    .filter((p) => p.is_active && p.id !== requisition.requester_id && p.is_test_user === requisition.is_test)
+    .map((p) => ({ id: p.id, full_name: p.full_name }))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
   const previousStageLabel =
     stageKey === "finance" && requisition.requisition_type === "departmental" && !requesterIsDeptHead
@@ -534,6 +547,10 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       approvedSupervisorIds={approvedSupervisorIds}
       requesterIsDeptHead={requesterIsDeptHead}
       usesSupervisors={usesSupervisors}
+      copiedIn={copiedIn}
+      copiedInCandidates={copiedInCandidates}
+      canManageCopiedIn={canManageCopiedIn}
+      isCopiedIn={isCopiedIn}
       history={history}
       expenditures={expenditures}
       permissions={{

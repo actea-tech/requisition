@@ -19,6 +19,8 @@ import { AttachmentsPanel, type AttachmentRow } from "@/components/requisitions/
 import { FinanceGroupPanel } from "@/components/requisitions/finance-group-panel";
 import { AuthorizerGroupPanel } from "@/components/requisitions/authorizer-group-panel";
 import { SupervisorsPanel } from "@/components/requisitions/supervisors-panel";
+import { CopiedInPanel } from "@/components/requisitions/copied-in-panel";
+import { CopiedInCommentBox } from "@/components/requisitions/copied-in-comment-box";
 import { AssistantForwardControl } from "@/components/requisitions/assistant-forward-control";
 import { CancelRequisitionControl } from "@/components/requisitions/cancel-requisition-control";
 import { ExpenditureAccountingPanel, type ExpenditureRow } from "@/components/requisitions/expenditure-accounting-panel";
@@ -80,6 +82,10 @@ export function RequisitionWorkspace({
   approvedSupervisorIds,
   requesterIsDeptHead,
   usesSupervisors,
+  copiedIn,
+  copiedInCandidates,
+  canManageCopiedIn,
+  isCopiedIn,
   history,
   expenditures,
   permissions,
@@ -115,6 +121,14 @@ export function RequisitionWorkspace({
   requesterIsDeptHead: boolean;
   /** The chosen supervisors actually take part (as saved). */
   usesSupervisors: boolean;
+  /** People the requester copied in to follow (and comment on) this requisition. */
+  copiedIn: { id: string; full_name: string }[];
+  /** Every active user the requester may copy in (not themselves). */
+  copiedInCandidates: { id: string; full_name: string }[];
+  /** The requester, until the requisition is closed. */
+  canManageCopiedIn: boolean;
+  /** The viewer is copied in (read-only, may comment). */
+  isCopiedIn: boolean;
   history: HistoryEntry[];
   expenditures: ExpenditureRow[];
   currencyOptions: { value: string; label: string }[];
@@ -651,6 +665,17 @@ export function RequisitionWorkspace({
             disabled={requiresDirectorAuth === "no"}
           />
         ) : null}
+
+        {canManageCopiedIn || copiedIn.length > 0 ? (
+          <CopiedInPanel
+            requisitionId={requisition.id}
+            selected={copiedIn}
+            candidates={copiedInCandidates}
+            editable={canManageCopiedIn}
+          />
+        ) : null}
+
+        {isCopiedIn ? <CopiedInCommentBox requisitionId={requisition.id} /> : null}
 
         <ApprovalHistory entries={history} />
       </div>

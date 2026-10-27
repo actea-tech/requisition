@@ -25,14 +25,16 @@ const DECISION_LABELS: Record<ApprovalDecision, string> = {
   accounting_approved: "Accounting approved",
   accounting_returned: "Accounting returned",
   invoice_submitted: "Invoice submitted",
+  commented: "Commented",
 };
 
 // invoice_submitted/accounting_submitted are the requester's own action,
 // not a decision made "at" that stage — their stage_key is bookkeeping for
 // approval_actions' FK/eligibility plumbing only (see submit_procurement_
 // invoice/submit_requisition_accounting), so showing "at Finance" next to
-// them is misleading rather than informative.
-const NO_STAGE_LABEL_DECISIONS = new Set<ApprovalDecision>(["invoice_submitted", "accounting_submitted"]);
+// them is misleading rather than informative. A comment from someone copied
+// in is the same: they aren't a stage's approver, so it isn't "at" a stage.
+const NO_STAGE_LABEL_DECISIONS = new Set<ApprovalDecision>(["invoice_submitted", "accounting_submitted", "commented"]);
 
 const DECISION_VARIANT: Record<ApprovalDecision, "secondary" | "success" | "destructive" | "warning"> = {
   submitted: "secondary",
@@ -46,6 +48,7 @@ const DECISION_VARIANT: Record<ApprovalDecision, "secondary" | "success" | "dest
   accounting_approved: "success",
   accounting_returned: "warning",
   invoice_submitted: "secondary",
+  commented: "secondary",
 };
 
 export interface HistoryEntry {
