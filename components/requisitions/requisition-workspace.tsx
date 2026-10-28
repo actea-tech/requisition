@@ -139,6 +139,8 @@ export function RequisitionWorkspace({
     canManageFinanceGroup: boolean;
     canSetDirectorAuthorization: boolean;
     canEditFinalProcessing: boolean;
+    /** Finance can fill the Final Processing fields in already at Finance Review. */
+    canEditFinalProcessingEarly: boolean;
     canCompletePayment: boolean;
     canMarkPostedAndClosed: boolean;
     canUploadAttachments: boolean;
@@ -912,6 +914,12 @@ export function RequisitionWorkspace({
               </div>
             ) : null}
 
+            {permissions.canEditFinalProcessingEarly ? (
+              <Button className="w-full" variant="outline" disabled={isPending} onClick={handleSave}>
+                Save Final Processing details
+              </Button>
+            ) : null}
+
             {permissions.canMarkPostedAndClosed ? (
               <Button className="w-full" disabled={isPending} onClick={handleMarkPostedAndClosed}>
                 Mark Posted &amp; Closed
@@ -929,6 +937,7 @@ export function RequisitionWorkspace({
             !permissions.canDecide &&
             !permissions.canSetDirectorAuthorization &&
             !permissions.canEditFinalProcessing &&
+            !permissions.canEditFinalProcessingEarly &&
             !permissions.canMarkPostedAndClosed &&
             !permissions.canCancelRequisition &&
             !permissions.canEditExpenditures &&
