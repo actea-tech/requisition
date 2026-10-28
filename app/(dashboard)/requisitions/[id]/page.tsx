@@ -175,6 +175,15 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // Stays editable through Paid and Posted & Closed too — the voucher
   // number/QBO reference are often only available after marking Paid, and
   // Finance may need to correct them even once closed.
+  // Editing the Final Processing *fields*: any Finance Lead, and an Assistant
+  // only when the requisition is assigned to them (raised, cleared, forwarded
+  // or theirs to review at Finance). Mirrors finance_assistant_is_assigned()
+  // in the database, which enforces it.
+  const assistantAssigned =
+    isOwner || isForwardedAssistant || requisition.finance_accountant_id === profile.id || (stageKey === "finance" && isEligibleApprover);
+  const canEditFinalProcessingFields =
+    (stageKey === "payment" || ["paid_posted", "posted_and_closed"].includes(requisition.status)) &&
+    (isAdmin || profile.role === "finance_accountant" || (profile.role === "finance_assistant" && assistantAssigned));
   const canEditFinalProcessing =
     (stageKey === "payment" || ["paid_posted", "posted_and_closed"].includes(requisition.status)) &&
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant");
@@ -217,7 +226,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // fields: payment documents and Mark Paid still wait for Payment Processing.
   const canEditFinalProcessingEarly =
     stageKey === "finance" &&
-    (isAdmin || profile.role === "finance_accountant" || (profile.role === "finance_assistant" && assistantMayAct));
+    (isAdmin || profile.role === "finance_accountant" || (profile.role === "finance_assistant" && assistantAssigned));
   // Also at Payment Processing: adding someone there reopens the
   // requisition for their authorization.
   const canManageAuthorizers =
@@ -382,7 +391,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
             ? canEditFinance
             : key === "finance_review"
               ? canEditFinance
-              : canEditFinalProcessing || canEditFinalProcessingEarly,
+              : canEditFinalProcessingFields || canEditFinalProcessingEarly,
     fields: (fieldConfig ?? [])
       .filter(
         (f) =>
