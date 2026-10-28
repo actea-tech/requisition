@@ -211,6 +211,13 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     requisition.finance_accountant_id === profile.id ||
     isEligibleApprover ||
     ["approved_for_payment", "paid_posted", "accounting_review", "posted_and_closed"].includes(requisition.status);
+  // Finance can also fill the Final Processing fields in earlier, while the
+  // requisition is still at Finance Review — some of that information
+  // (e.g. the posting reference) matters to the earlier reviewers. Only the
+  // fields: payment documents and Mark Paid still wait for Payment Processing.
+  const canEditFinalProcessingEarly =
+    stageKey === "finance" &&
+    (isAdmin || profile.role === "finance_accountant" || (profile.role === "finance_assistant" && assistantMayAct));
   // Also at Payment Processing: adding someone there reopens the
   // requisition for their authorization.
   const canManageAuthorizers =
@@ -375,7 +382,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
             ? canEditFinance
             : key === "finance_review"
               ? canEditFinance
-              : canEditFinalProcessing,
+              : canEditFinalProcessing || canEditFinalProcessingEarly,
     fields: (fieldConfig ?? [])
       .filter(
         (f) =>
@@ -560,6 +567,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canManageFinanceGroup,
         canSetDirectorAuthorization,
         canEditFinalProcessing,
+        canEditFinalProcessingEarly,
         canCompletePayment,
         canMarkPostedAndClosed,
         canUploadAttachments,
