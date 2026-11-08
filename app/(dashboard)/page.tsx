@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { AnalyticsSection } from "@/components/dashboard/analytics-section";
+import { parseRange, type DashboardAnalytics } from "@/lib/analytics";
 
-export default async function DashboardHome() {
+export default async function DashboardHome({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+  const { range } = await searchParams;
   const profile = await requireProfile();
   const supabase = await createClient();
 
@@ -15,6 +18,7 @@ export default async function DashboardHome() {
     { count: myActionCount },
     { count: needsAccountingCount },
     { count: awaitingInvoiceCount },
+    { data: analyticsRaw },
   ] = await Promise.all([
     supabase.from("requisitions").select("id", { count: "exact", head: true }).eq("requester_id", profile.id),
     supabase.rpc("get_pending_approval_requisition_ids", { p_user_id: profile.id }),
@@ -40,7 +44,11 @@ export default async function DashboardHome() {
       .select("id", { count: "exact", head: true })
       .eq("requester_id", profile.id)
       .eq("status", "awaiting_invoice"),
+    // The analytics section below the cards. The database decides whether this
+    // person may see it (and how much); a denied or missing result just hides it.
+    supabase.rpc("get_dashboard_analytics", { p_range: parseRange(range) }),
   ]);
+  const analytics = analyticsRaw as unknown as DashboardAnalytics | null;
   const pendingCount = pendingIds?.length ?? 0;
 
   return (
@@ -133,6 +141,8 @@ export default async function DashboardHome() {
           </Card>
         ) : null}
       </div>
+
+      {analytics?.allowed ? <AnalyticsSection data={analytics} /> : null}
     </div>
   );
 }

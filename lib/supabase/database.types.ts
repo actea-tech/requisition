@@ -554,6 +554,10 @@ export interface Database {
         Args: { p_requisition_id: string; p_user_ids: string[] };
         Returns: void;
       };
+      get_dashboard_analytics: {
+        Args: { p_range?: string };
+        Returns: Json;
+      };
       set_requisition_copied_in: {
         Args: { p_requisition_id: string; p_user_ids: string[] };
         Returns: void;

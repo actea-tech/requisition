@@ -4,8 +4,15 @@ import { DirectorAuthorizationCard } from "@/components/settings/director-author
 import { FinanceAssistantThresholdCard } from "@/components/settings/finance-assistant-threshold-card";
 import { PaymentStageCancellationCard } from "@/components/settings/payment-stage-cancellation-card";
 import { NewRequisitionsToggleCard } from "@/components/settings/new-requisitions-toggle-card";
+import { DashboardAnalyticsCard } from "@/components/settings/dashboard-analytics-card";
 import { AllowedFileTypesCard } from "@/components/settings/allowed-file-types-card";
 import { loadAllowedFileTypes } from "@/lib/file-types";
+import {
+  DEFAULT_INVOICE_OVERDUE_DAYS,
+  DEFAULT_OVERDUE_DAYS,
+  parseAnalyticsRoles,
+  parseDays,
+} from "@/lib/analytics";
 
 export default async function ApprovalRulesSettingsPage() {
   const supabase = await createClient();
@@ -18,6 +25,7 @@ export default async function ApprovalRulesSettingsPage() {
     { data: paymentCancellationRow },
     { data: newRequisitionsRow },
     allowedFileTypes,
+    { data: analyticsRows },
   ] = await Promise.all([
     supabase.from("approval_stage_config").select("stage_key, mode, quorum_count").is("department_id", null),
     supabase.from("app_settings").select("value").eq("key", "director_auth_mode").maybeSingle(),
@@ -27,7 +35,12 @@ export default async function ApprovalRulesSettingsPage() {
     supabase.from("app_settings").select("value").eq("key", "payment_stage_cancellation_enabled").maybeSingle(),
     supabase.from("app_settings").select("value").eq("key", "new_requisitions_enabled").maybeSingle(),
     loadAllowedFileTypes(supabase),
+    supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["analytics_roles", "analytics_overdue_days", "analytics_invoice_overdue_days"]),
   ]);
+  const analyticsSetting = (key: string) => analyticsRows?.find((r) => r.key === key)?.value;
 
   const financeConfig = config?.find((c) => c.stage_key === "finance");
   const directorAuthMode = directorAuthModeRow?.value === "amount_threshold" ? "amount_threshold" : "accountant_discretion";
@@ -64,6 +77,12 @@ export default async function ApprovalRulesSettingsPage() {
       <PaymentStageCancellationCard initialEnabled={paymentStageCancellationEnabled} />
 
       <AllowedFileTypesCard initialAllowed={allowedFileTypes} />
+
+      <DashboardAnalyticsCard
+        initialRoles={parseAnalyticsRoles(analyticsSetting("analytics_roles"))}
+        initialOverdueDays={parseDays(analyticsSetting("analytics_overdue_days"), DEFAULT_OVERDUE_DAYS)}
+        initialInvoiceOverdueDays={parseDays(analyticsSetting("analytics_invoice_overdue_days"), DEFAULT_INVOICE_OVERDUE_DAYS)}
+      />
     </div>
   );
 }
