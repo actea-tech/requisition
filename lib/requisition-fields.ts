@@ -27,6 +27,11 @@ export const REQUISITION_KINDS = [
   { value: "procurement", label: "Product/Service Requisition" },
 ];
 
+// Not in REQUISITION_KINDS above: nobody picks it - Finance creates it from
+// "Consolidate Payments". Only offered (as the single option) on a
+// requisition that already is one, so its kind reads correctly.
+export const CONSOLIDATED_REQUISITION_KIND = { value: "consolidated", label: "Consolidated payment" };
+
 const YES_NO = [
   { value: "yes", label: "Yes" },
   { value: "no", label: "No" },

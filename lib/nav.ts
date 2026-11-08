@@ -1,10 +1,10 @@
 import type { UserRole } from "@/lib/supabase/database.types";
-import { canAccessSettings, canViewAudit } from "@/lib/roles";
+import { canAccessSettings, canConsolidate, canViewAudit } from "@/lib/roles";
 
 export interface NavItem {
   href: string;
   label: string;
-  icon: "dashboard" | "plus" | "list" | "accounting" | "check" | "audit" | "settings";
+  icon: "dashboard" | "plus" | "list" | "accounting" | "check" | "audit" | "settings" | "combine";
 }
 
 export function navItemsForRole(role: UserRole): NavItem[] {
@@ -23,6 +23,11 @@ export function navItemsForRole(role: UserRole): NavItem[] {
   // updated to "dept_head". Worst case for a plain staff member is an
   // empty list.
   items.push({ href: "/approvals", label: "Pending My Approval", icon: "check" });
+
+  // Finance combines requisitions that are ready to pay into one payment.
+  if (canConsolidate(role)) {
+    items.push({ href: "/requisitions/consolidate", label: "Consolidate Payments", icon: "combine" });
+  }
 
   if (canViewAudit(role)) {
     items.push({ href: "/audit", label: "Audit Trail", icon: "audit" });

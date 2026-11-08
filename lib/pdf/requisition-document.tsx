@@ -139,6 +139,8 @@ export interface RequisitionPdfData {
     created_at: string;
     actorName: string;
   }[];
+  /** Set for a consolidated payment: the requisitions it combined. */
+  consolidatedMembers?: { requisition_number: string | null; requesterName: string; amount: number; currency: string }[];
   generatedAt: string;
   logoSrc: string | null;
   status: "posted_and_closed" | "rejected";
@@ -217,6 +219,18 @@ export function RequisitionPdfDocument({ data }: { data: RequisitionPdfData }) {
           <Field label="Activity / Project" value={data.activity_project} />
           <Field label="Submitted" value={data.submitted_at ? new Date(data.submitted_at).toLocaleDateString() : null} />
         </Section>
+
+        {data.consolidatedMembers && data.consolidatedMembers.length > 0 ? (
+          <Section title="Requisitions in this payment">
+            {data.consolidatedMembers.map((m, i) => (
+              <Field
+                key={i}
+                label={m.requisition_number ?? "Requisition"}
+                value={`${m.requesterName} · ${m.currency} ${m.amount.toLocaleString()}`}
+              />
+            ))}
+          </Section>
+        ) : null}
 
         <Section title="Payment Details">
           {data.payees.map((payee, i) => (

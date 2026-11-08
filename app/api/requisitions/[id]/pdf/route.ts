@@ -39,7 +39,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     );
   }
 
-  const [{ data: historyRaw }, { data: department }, { data: allProfiles }, { data: payeesRaw }] = await Promise.all([
+  const [{ data: historyRaw }, { data: department }, { data: allProfiles }, { data: payeesRaw }, { data: membersRaw }] =
+    await Promise.all([
     supabase
       .from("approval_actions")
       .select("stage_key, decision, comments, created_at, actor_id")
@@ -55,6 +56,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       .eq("requisition_id", id)
       .order("sort_order")
       .order("created_at"),
+    requisition.requisition_kind === "consolidated"
+      ? supabase.rpc("get_consolidation_members", { p_consolidated_id: id })
+      : Promise.resolve({ data: null }),
   ]);
 
   const profileById = new Map((allProfiles ?? []).map((p) => [p.id, p.full_name]));
@@ -67,6 +71,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     purpose: requisition.purpose,
     activity_project: requisition.activity_project,
     payees: payeesRaw ?? [],
+    consolidatedMembers: membersRaw?.map((m) => ({
+      requisition_number: m.requisition_number,
+      requesterName: m.requester_name ?? "Unknown",
+      amount: m.amount ?? 0,
+      currency: m.currency,
+    })),
     amount: requisition.amount,
     currency: requisition.currency,
     budget_line: requisition.budget_line,

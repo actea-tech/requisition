@@ -421,3 +421,17 @@ export async function addRequisitionCommentAction(requisitionId: string, comment
   revalidatePath(`/requisitions/${requisitionId}`);
   return { error: error?.message ?? null };
 }
+
+// Changes which requisitions are in a consolidated requisition (while it is
+// still a draft or returned to Finance). The database rebuilds the total and
+// payees and re-checks every requisition is still ready to pay.
+export async function setConsolidationMembersAction(consolidatedId: string, requisitionIds: string[]) {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_consolidation_members", {
+    p_consolidated_id: consolidatedId,
+    p_requisition_ids: requisitionIds,
+  });
+  revalidatePath(`/requisitions/${consolidatedId}`);
+  return { error: error?.message ?? null };
+}
