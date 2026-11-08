@@ -2,13 +2,18 @@
 
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getAttachmentSignedUrl, reviewRequisitionAccountingAction } from "@/app/(dashboard)/requisitions/[id]/actions";
-import type { ExpenditureRow } from "@/components/requisitions/expenditure-accounting-panel";
+import { reviewRequisitionAccountingAction } from "@/app/(dashboard)/requisitions/[id]/actions";
+import {
+  DocumentPreviewDialog,
+  DownloadButton,
+  PreviewButton,
+  type PreviewDoc,
+} from "@/components/requisitions/document-viewer";
+import { expenditureDoc, type ExpenditureRow } from "@/components/requisitions/expenditure-accounting-panel";
 
 export function AccountingReviewPanel({
   requisitionId,
@@ -49,12 +54,10 @@ export function AccountingReviewPanel({
     });
   }
 
-  async function handleView(path: string) {
-    const url = await getAttachmentSignedUrl(path);
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
-  }
+  const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
 
   return (
+    <>
     <Card id="accounting-review">
       <CardHeader>
         <CardTitle className="text-base">Review accounting</CardTitle>
@@ -74,10 +77,11 @@ export function AccountingReviewPanel({
                 <span className="text-xs text-muted-foreground">
                   {currency} {e.amount.toLocaleString()}
                 </span>
-                {e.storage_path ? (
-                  <Button variant="ghost" size="icon-sm" onClick={() => handleView(e.storage_path!)}>
-                    <Download className="size-4" />
-                  </Button>
+                {expenditureDoc(e) ? (
+                  <>
+                    <PreviewButton onClick={() => setPreviewDoc(expenditureDoc(e))} />
+                    <DownloadButton doc={expenditureDoc(e)!} />
+                  </>
                 ) : null}
               </div>
             </li>
@@ -146,5 +150,7 @@ export function AccountingReviewPanel({
         </div>
       </CardContent>
     </Card>
+    <DocumentPreviewDialog doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+    </>
   );
 }

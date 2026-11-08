@@ -2,12 +2,18 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Paperclip, Trash2, Download } from "lucide-react";
+import { Paperclip, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteAttachment, getAttachmentSignedUrl } from "@/app/(dashboard)/requisitions/[id]/actions";
+import { deleteAttachment } from "@/app/(dashboard)/requisitions/[id]/actions";
+import {
+  DocumentPreviewDialog,
+  DownloadButton,
+  PreviewButton,
+  type PreviewDoc,
+} from "@/components/requisitions/document-viewer";
 import type { FormSection } from "@/lib/supabase/database.types";
 import { acceptAttribute, describeFileTypes, isFileTypeAllowed, unsupportedFileMessage } from "@/lib/file-types";
 
@@ -107,12 +113,15 @@ export function AttachmentsPanel({
     router.refresh();
   }
 
-  async function handleView(path: string) {
-    const url = await getAttachmentSignedUrl(path);
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
-  }
+  const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
+  const docOf = (a: AttachmentRow): PreviewDoc => ({
+    storagePath: a.storage_path,
+    fileName: a.file_name,
+    fileSize: a.file_size,
+  });
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
@@ -127,7 +136,7 @@ export function AttachmentsPanel({
                 <div className="flex items-center justify-between">
                   <button
                     type="button"
-                    onClick={() => handleView(a.storage_path)}
+                    onClick={() => setPreviewDoc(docOf(a))}
                     className="flex min-w-0 items-center gap-2 text-left hover:underline"
                   >
                     <Paperclip className="size-4 shrink-0 text-muted-foreground" />
@@ -135,9 +144,8 @@ export function AttachmentsPanel({
                     <span className="shrink-0 text-xs text-muted-foreground">{formatSize(a.file_size)}</span>
                   </button>
                   <div className="flex shrink-0 items-center gap-1">
-                    <Button variant="ghost" size="icon-sm" onClick={() => handleView(a.storage_path)}>
-                      <Download className="size-4" />
-                    </Button>
+                    <PreviewButton onClick={() => setPreviewDoc(docOf(a))} />
+                    <DownloadButton doc={docOf(a)} />
                     {canDelete ? (
                       <Button
                         variant="ghost"
@@ -205,5 +213,7 @@ export function AttachmentsPanel({
         )}
       </CardContent>
     </Card>
+    <DocumentPreviewDialog doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+    </>
   );
 }
