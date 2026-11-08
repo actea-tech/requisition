@@ -19,6 +19,8 @@ export default async function ConsolidatePaymentsPage() {
       .from("requisitions")
       .select("id, requisition_number, purpose, amount, currency, requester_id, stage_entered_at")
       .eq("status", "approved_for_payment")
+      // Test and real requisitions are never combined; admins can see both, so only list the kind they work in.
+      .eq("is_test", profile.is_test_user)
       .neq("requisition_kind", "consolidated")
       .or("cancellation_status.is.null,cancellation_status.neq.requested")
       .order("stage_entered_at"),

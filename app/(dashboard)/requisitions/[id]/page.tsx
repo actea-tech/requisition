@@ -328,6 +328,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         .select("id, requisition_number, amount, requester_id")
         .eq("status", "approved_for_payment")
         .eq("currency", requisition.currency)
+        .eq("is_test", requisition.is_test)
         .neq("requisition_kind", "consolidated")
         .or("cancellation_status.is.null,cancellation_status.neq.requested")
         .order("requisition_number"),
