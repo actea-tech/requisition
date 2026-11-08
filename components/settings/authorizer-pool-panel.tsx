@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,7 +69,8 @@ export function AuthorizerPoolPanel({ members, candidates }: { members: Person[]
             disabled={!picked || isPending}
             onClick={() =>
               startTransition(async () => {
-                await addToAuthorizerPool(picked);
+                const result = await addToAuthorizerPool(picked);
+                if (result.error) toast.error(result.error);
                 setPicked("");
               })
             }
