@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/session";
-import type { ApprovalMode, ApprovalStageKey } from "@/lib/supabase/database.types";
+import type { ApprovalMode, ApprovalStageKey, UserRole } from "@/lib/supabase/database.types";
+import {
+  ANALYTICS_INVOICE_OVERDUE_DAYS_SETTING_KEY,
+  ANALYTICS_OVERDUE_DAYS_SETTING_KEY,
+  ANALYTICS_ROLES_SETTING_KEY,
+  ANALYTICS_ROLE_CHOICES,
+  serializeAnalyticsRoles,
+} from "@/lib/analytics";
 import { ALLOWED_FILE_TYPES_SETTING_KEY, FILE_TYPE_OPTIONS, serializeAllowedFileTypes } from "@/lib/file-types";
 
 export async function setGlobalStageMode(
@@ -115,5 +122,30 @@ export async function setAllowedFileTypes(ids: string[]) {
     .upsert({ key: ALLOWED_FILE_TYPES_SETTING_KEY, value: serializeAllowedFileTypes(valid) });
 
   revalidatePath("/settings/approval-rules");
+  return { error: error?.message ?? null };
+}
+
+// Which roles see the analytics section of the dashboard (Admin always does),
+// and when something counts as overdue. Zero roles is fine: only Admin then.
+export async function setDashboardAnalyticsSettings(roles: UserRole[], overdueDays: number, invoiceOverdueDays: number) {
+  await requireAdmin();
+  const known = new Set(ANALYTICS_ROLE_CHOICES.map((c) => c.role as string));
+  const valid = roles.filter((r) => known.has(r));
+  if (!Number.isInteger(overdueDays) || overdueDays < 1 || overdueDays > 365) {
+    return { error: "Overdue days must be a whole number between 1 and 365." };
+  }
+  if (!Number.isInteger(invoiceOverdueDays) || invoiceOverdueDays < 1 || invoiceOverdueDays > 365) {
+    return { error: "Awaiting-invoice days must be a whole number between 1 and 365." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("app_settings").upsert([
+    { key: ANALYTICS_ROLES_SETTING_KEY, value: serializeAnalyticsRoles(valid) },
+    { key: ANALYTICS_OVERDUE_DAYS_SETTING_KEY, value: String(overdueDays) },
+    { key: ANALYTICS_INVOICE_OVERDUE_DAYS_SETTING_KEY, value: String(invoiceOverdueDays) },
+  ]);
+
+  revalidatePath("/settings/approval-rules");
+  revalidatePath("/");
   return { error: error?.message ?? null };
 }
