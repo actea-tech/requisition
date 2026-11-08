@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   ScrollText,
   Settings,
+  Combine,
   type LucideIcon,
 } from "lucide-react";
 import type { NavItem } from "@/lib/nav";
@@ -18,6 +19,7 @@ const ICONS: Record<NavItem["icon"], LucideIcon> = {
   check: ClipboardCheck,
   audit: ScrollText,
   settings: Settings,
+  combine: Combine,
 };
 
 export function NavIcon({ icon, className }: { icon: NavItem["icon"]; className?: string }) {

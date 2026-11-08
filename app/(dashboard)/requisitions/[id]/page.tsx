@@ -8,7 +8,11 @@ import {
   type SectionSpec,
 } from "@/components/requisitions/requisition-workspace";
 import type { FormSection } from "@/lib/supabase/database.types";
-import { REQUISITION_TYPES, FINANCE_DIRECT_REQUISITION_TYPE } from "@/lib/requisition-fields";
+import {
+  REQUISITION_TYPES,
+  FINANCE_DIRECT_REQUISITION_TYPE,
+  CONSOLIDATED_REQUISITION_KIND,
+} from "@/lib/requisition-fields";
 import { PAYEE_FIELD_KEYS } from "@/lib/payees";
 import { loadAllowedFileTypes } from "@/lib/file-types";
 
@@ -50,6 +54,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: supervisorPoolRaw },
     { data: supervisorsRaw },
     { data: copiedInRaw },
+    { data: consolidationMembersRaw },
+    { data: partOfRaw },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -97,6 +103,14 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     supabase.from("supervisor_pool").select("user_id"),
     supabase.from("requisition_supervisors").select("user_id").eq("requisition_id", id),
     supabase.from("requisition_copied_in").select("user_id").eq("requisition_id", id),
+    // Consolidated payments: what is in this one (readable by people who cannot open the originals,
+    // e.g. an authorizer) - or, for an ordinary requisition, which one it was combined into.
+    requisition.requisition_kind === "consolidated"
+      ? supabase.rpc("get_consolidation_members", { p_consolidated_id: id })
+      : Promise.resolve({ data: null }),
+    requisition.requisition_kind === "consolidated"
+      ? Promise.resolve({ data: null })
+      : supabase.rpc("get_requisition_consolidation", { p_requisition_id: id }),
   ]);
 
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
@@ -110,6 +124,16 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // the Assistant should be able to do anything the Accountant could for
   // this specific requisition, not just approve/reject it.
   const isForwardedAssistant = (assistantForwardsRaw?.[0]?.assistant_id ?? null) === profile.id;
+
+  // Consolidated payment: Finance combined several approved requisitions into this one. Its amount and
+  // payees come from them (read-only), it cannot be re-typed as another kind, and Finance still chooses
+  // whether it needs authorization.
+  const isConsolidated = requisition.requisition_kind === "consolidated";
+  const partOf = partOfRaw?.[0] ?? null;
+  // An ordinary requisition combined into a consolidated one is paid, closed or released with it, not on its own.
+  const lockedInConsolidation = Boolean(partOf) && requisition.status === "approved_for_payment";
+  const canOpenConsolidated =
+    isAdmin || ["finance_accountant", "finance_assistant", "finance_reviewer", "director"].includes(profile.role);
 
   // A "return to previous stage" targets that stage's approver(s) — treat
   // them exactly as if the requisition were back at that stage (same
@@ -183,6 +207,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     isOwner || isForwardedAssistant || requisition.finance_accountant_id === profile.id || (stageKey === "finance" && isEligibleApprover);
   const canEditFinalProcessingFields =
     (stageKey === "payment" || ["paid_posted", "posted_and_closed"].includes(requisition.status)) &&
+    !partOf &&
     (isAdmin || profile.role === "finance_accountant" || (profile.role === "finance_assistant" && assistantAssigned));
   const canEditFinalProcessing =
     (stageKey === "payment" || ["paid_posted", "posted_and_closed"].includes(requisition.status)) &&
@@ -193,6 +218,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // been marked Paid rather than staying visible through later stages.
   const canCompletePayment =
     stageKey === "payment" &&
+    !lockedInConsolidation &&
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant");
   // Second, separate step after marking Paid — the Accountant may
   // legitimately wait on further bank documents before actually posting to
@@ -232,7 +258,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const canManageAuthorizers =
     (stageKey === "finance" || stageKey === "director" || requisition.status === "approved_for_payment") &&
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
-    assistantMayAct;
+    assistantMayAct &&
+    !lockedInConsolidation;
   // Who has already authorized in the current round (the order of anyone
   // who has can no longer change), and whether the order can still be set.
   const approvedAuthorizerIds = (historyRaw ?? [])
@@ -251,6 +278,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // Settings > Approval Rules (payment_stage_cancellation_enabled).
   const paymentStageCancellationEnabled = paymentCancellationSettingRow?.value === "yes";
   const canCancelRequisition =
+    !lockedInConsolidation &&
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
     assistantMayAct &&
     !["paid_posted", "posted_and_closed", "cancelled"].includes(requisition.status) &&
@@ -276,6 +304,45 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // returned straight back to them (not redirected to a previous stage).
   const canEditDraftFields =
     isOwner && (requisition.status === "draft" || (requisition.status === "returned" && !isReturnedToPreviousStage));
+
+  // Finance building a consolidated payment picks whether it needs authorization (the same control as at Finance Review).
+  const canSetConsolidationAuthorization = isConsolidated && canEditDraftFields;
+  const consolidationMembers = (consolidationMembersRaw ?? []).map((m) => ({
+    id: m.requisition_id,
+    requisition_number: m.requisition_number,
+    purpose: m.purpose,
+    requester_name: m.requester_name,
+    amount: m.amount ?? 0,
+    currency: m.currency,
+    status: m.status,
+    payees: (Array.isArray(m.payees) ? (m.payees as { payee_name?: string | null }[]) : [])
+      .map((p) => p.payee_name ?? "")
+      .filter(Boolean),
+  }));
+  // While it is a draft, Finance can add other requisitions that are ready to pay in the same currency.
+  let consolidationCandidates: { id: string; requisition_number: string | null; requester_name: string | null; amount: number }[] = [];
+  if (isConsolidated && canEditDraftFields) {
+    const [{ data: readyRaw }, { data: lockedRaw }] = await Promise.all([
+      supabase
+        .from("requisitions")
+        .select("id, requisition_number, amount, requester_id")
+        .eq("status", "approved_for_payment")
+        .eq("currency", requisition.currency)
+        .neq("requisition_kind", "consolidated")
+        .or("cancellation_status.is.null,cancellation_status.neq.requested")
+        .order("requisition_number"),
+      supabase.from("requisition_consolidation_items").select("requisition_id"),
+    ]);
+    const locked = new Set((lockedRaw ?? []).map((l) => l.requisition_id));
+    consolidationCandidates = (readyRaw ?? [])
+      .filter((r) => !locked.has(r.id))
+      .map((r) => ({
+        id: r.id,
+        requisition_number: r.requisition_number,
+        requester_name: nameFor(r.requester_id),
+        amount: r.amount ?? 0,
+      }));
+  }
 
   // Procurement-only: once Finance clears the budget-availability check
   // (Procurement — Finance Review), the requester adds the real invoice/
@@ -386,7 +453,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       key === "request_details"
         ? canEditDraftFields
         : key === "payment_details"
-          ? canEditDraftFields || canSubmitInvoice
+          ? (canEditDraftFields && !isConsolidated) || canSubmitInvoice
           : key === "budget_and_coding" || key === "compliance_and_support"
             ? canEditFinance
             : key === "finance_review"
@@ -420,7 +487,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         // visible for reference but locked — never silently overwritten
         // alongside the real amount. Never locked while still draft-
         // editable — there's no invoice to protect against yet.
-        locked: f.field_key === "estimated_amount" && !isProcurementPreInvoice && !canEditDraftFields,
+        locked:
+          (f.field_key === "estimated_amount" && !isProcurementPreInvoice && !canEditDraftFields) ||
+          (isConsolidated && (f.field_key === "requisition_kind" || f.field_key === "requisition_type")),
       })),
   }));
 
@@ -542,11 +611,14 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   const canRaiseFinanceDirect =
     (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
     requisition.requisition_kind !== "procurement";
-  const requisitionTypeOptions = mustBeIndividual
-    ? REQUISITION_TYPES.filter((t) => t.value === "individual")
-    : canRaiseFinanceDirect
-      ? [...REQUISITION_TYPES, FINANCE_DIRECT_REQUISITION_TYPE]
-      : undefined;
+  const requisitionTypeOptions = isConsolidated
+    ? [FINANCE_DIRECT_REQUISITION_TYPE]
+    : mustBeIndividual
+      ? REQUISITION_TYPES.filter((t) => t.value === "individual")
+      : canRaiseFinanceDirect
+        ? [...REQUISITION_TYPES, FINANCE_DIRECT_REQUISITION_TYPE]
+        : undefined;
+  const requisitionKindOptions = isConsolidated ? [CONSOLIDATED_REQUISITION_KIND] : undefined;
 
   return (
     <RequisitionWorkspace
@@ -574,7 +646,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
         canDecide,
         canEditFinance,
         canManageFinanceGroup,
-        canSetDirectorAuthorization,
+        canSetDirectorAuthorization: canSetDirectorAuthorization || canSetConsolidationAuthorization,
         canEditFinalProcessing,
         canEditFinalProcessingEarly,
         canCompletePayment,
@@ -606,6 +678,22 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
       assistantCandidates={assistantCandidates}
       forwardedAssistantId={forwardedAssistantId}
       requisitionTypeOptions={requisitionTypeOptions}
+      requisitionKindOptions={requisitionKindOptions}
+      consolidation={
+        isConsolidated
+          ? {
+              members: consolidationMembers,
+              candidates: consolidationCandidates,
+              editable: canEditDraftFields,
+              canOpenMembers: canOpenConsolidated,
+            }
+          : null
+      }
+      partOfConsolidation={
+        partOf
+          ? { id: partOf.consolidated_id, number: partOf.requisition_number, status: partOf.status, canOpen: canOpenConsolidated }
+          : null
+      }
     />
   );
 }

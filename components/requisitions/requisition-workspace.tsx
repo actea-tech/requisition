@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,11 @@ import { FinanceGroupPanel } from "@/components/requisitions/finance-group-panel
 import { AuthorizerGroupPanel } from "@/components/requisitions/authorizer-group-panel";
 import { SupervisorsPanel } from "@/components/requisitions/supervisors-panel";
 import { CopiedInPanel } from "@/components/requisitions/copied-in-panel";
+import {
+  ConsolidationPanel,
+  type ConsolidationCandidate,
+  type ConsolidationMember,
+} from "@/components/requisitions/consolidation-panel";
 import { CopiedInCommentBox } from "@/components/requisitions/copied-in-comment-box";
 import { AssistantForwardControl } from "@/components/requisitions/assistant-forward-control";
 import { CancelRequisitionControl } from "@/components/requisitions/cancel-requisition-control";
@@ -102,6 +108,9 @@ export function RequisitionWorkspace({
   assistantCandidates,
   forwardedAssistantId,
   requisitionTypeOptions,
+  requisitionKindOptions,
+  consolidation,
+  partOfConsolidation,
 }: {
   requisition: RequisitionRowForForm;
   sections: SectionSpec[];
@@ -172,6 +181,17 @@ export function RequisitionWorkspace({
   forwardedAssistantId: string | null;
   /** Role-filtered options for the Requisition type field; undefined falls back to the static departmental/individual list. */
   requisitionTypeOptions?: { value: string; label: string }[];
+  /** A consolidated payment shows its kind as the one option it has. */
+  requisitionKindOptions?: { value: string; label: string }[];
+  /** Set when this requisition IS a consolidated payment: what is in it. */
+  consolidation: {
+    members: ConsolidationMember[];
+    candidates: ConsolidationCandidate[];
+    editable: boolean;
+    canOpenMembers: boolean;
+  } | null;
+  /** Set when this requisition was combined into a consolidated payment. */
+  partOfConsolidation: { id: string; number: string | null; status: string; canOpen: boolean } | null;
 }) {
   const router = useRouter();
   const [returnTo, setReturnTo] = useState<"requester" | "previous_stage">("requester");
@@ -288,7 +308,7 @@ export function RequisitionWorkspace({
       }
       const result = await submitRequisitionAction(requisition.id);
       if (result.error) toast.error(result.error);
-      else toast.success("Requisition submitted for department review");
+      else toast.success(effectiveKind === "consolidated" ? "Consolidated requisition submitted" : "Requisition submitted for department review");
     });
   }
 
@@ -470,6 +490,37 @@ export function RequisitionWorkspace({
           </div>
         </div>
 
+        {partOfConsolidation ? (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="pt-6 text-sm">
+              <p className="font-medium">Part of a consolidated payment</p>
+              <p className="mt-1 text-muted-foreground">
+                This requisition has been combined with others into{" "}
+                {partOfConsolidation.canOpen ? (
+                  <Link href={`/requisitions/${partOfConsolidation.id}`} className="font-medium text-foreground underline-offset-4 hover:underline">
+                    {partOfConsolidation.number ?? "a consolidated requisition"}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-foreground">{partOfConsolidation.number ?? "a consolidated requisition"}</span>
+                )}
+                , so one payment covers all of them. It is paid and closed together with that one, and its payment
+                references are filled in from it.
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {consolidation ? (
+          <ConsolidationPanel
+            requisitionId={requisition.id}
+            members={consolidation.members}
+            candidates={consolidation.candidates}
+            currency={requisition.currency}
+            editable={consolidation.editable}
+            canOpenMembers={consolidation.canOpenMembers}
+          />
+        ) : null}
+
         {requisition.status === "returned" && requisition.return_reason ? (
           <Card className="border-destructive/40 bg-destructive/5">
             <CardContent className="pt-6 text-sm">
@@ -546,7 +597,9 @@ export function RequisitionWorkspace({
                           ? currencyOptions
                           : field.field_key === "requisition_type"
                             ? requisitionTypeOptions
-                            : undefined
+                            : field.field_key === "requisition_kind"
+                              ? requisitionKindOptions
+                              : undefined
                       }
                     />
                   </div>

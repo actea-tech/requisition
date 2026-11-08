@@ -45,7 +45,7 @@ export type RequisitionStatus =
   | "awaiting_invoice";
 export type CancellationStatus = "requested" | "approved" | "denied";
 export type RequisitionScope = "departmental" | "individual" | "finance_direct";
-export type RequisitionKind = "payment" | "fund" | "procurement";
+export type RequisitionKind = "payment" | "fund" | "procurement" | "consolidated";
 export type ExpenditureEntryType = "expense" | "balance_banked";
 export type YesNo = "yes" | "no";
 export type YesNoUnsure = "yes" | "no" | "not_sure";
@@ -338,6 +338,12 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      requisition_consolidation_items: {
+        Row: { consolidated_id: string; requisition_id: string; added_by: string | null; created_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       requisition_copied_in: {
         Row: { requisition_id: string; user_id: string; added_by: string | null; created_at: string };
         Insert: never;
@@ -553,6 +559,31 @@ export interface Database {
       set_requisition_supervisors: {
         Args: { p_requisition_id: string; p_user_ids: string[] };
         Returns: void;
+      };
+      create_consolidated_requisition: {
+        Args: { p_requisition_ids: string[] };
+        Returns: string;
+      };
+      set_consolidation_members: {
+        Args: { p_consolidated_id: string; p_requisition_ids: string[] };
+        Returns: void;
+      };
+      get_consolidation_members: {
+        Args: { p_consolidated_id: string };
+        Returns: {
+          requisition_id: string;
+          requisition_number: string | null;
+          purpose: string | null;
+          requester_name: string | null;
+          amount: number | null;
+          currency: string;
+          status: string;
+          payees: Json;
+        }[];
+      };
+      get_requisition_consolidation: {
+        Args: { p_requisition_id: string };
+        Returns: { consolidated_id: string; requisition_number: string | null; status: string }[];
       };
       get_dashboard_analytics: {
         Args: { p_range?: string };

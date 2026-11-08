@@ -99,6 +99,8 @@ export interface DashboardAnalytics {
   oldest: AnalyticsOpenRow[];
   invoice_overdue: AnalyticsInvoiceRow[];
   awaiting_accounting: { count: number; amounts: { currency: string; amount: number }[] };
+  /** Consolidated payments (left out of every other number above). */
+  consolidated: { count: number; amounts: { currency: string; amount: number }[] };
   monthly: { month: string; submitted: number; completed: number }[];
   by_department: { department: string; currency: string; total: number; count: number }[];
 }

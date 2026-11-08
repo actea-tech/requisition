@@ -98,7 +98,7 @@ export function AnalyticsSection({ data }: { data: DashboardAnalytics }) {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-4">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Amount requisitioned</CardTitle>
@@ -144,6 +144,24 @@ export function AnalyticsSection({ data }: { data: DashboardAnalytics }) {
           <CardContent className="space-y-1">
             <div className="text-3xl font-semibold tabular-nums">{data.awaiting_accounting.count}</div>
             {data.awaiting_accounting.amounts.map((a) => (
+              <div key={a.currency} className="text-sm text-muted-foreground">
+                {formatMoney(a.amount, a.currency)}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Consolidated payments</CardTitle>
+            <CardDescription>
+              Requisitions Finance combined into one payment. Their amounts are already counted above, so they are
+              not added again.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <div className="text-3xl font-semibold tabular-nums">{data.consolidated?.count ?? 0}</div>
+            {(data.consolidated?.amounts ?? []).map((a) => (
               <div key={a.currency} className="text-sm text-muted-foreground">
                 {formatMoney(a.amount, a.currency)}
               </div>

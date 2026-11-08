@@ -40,6 +40,13 @@ export function supervisorReviewLabel(label: string): string {
 }
 
 export function getStatusSteps(kind: RequisitionKind, requiresFullReapproval = false, supervisorReview = false) {
+  // Combined by Finance from requisitions already approved: no department or
+  // Finance review of its own.
+  if (kind === "consolidated") {
+    return STATUS_STEPS.filter((s) =>
+      ["draft", "director_review", "approved_for_payment", "paid_posted", "posted_and_closed"].includes(s.status),
+    );
+  }
   const steps = STATUS_STEPS.filter((s) => {
     if (s.status === "accounting_review") return kind === "fund";
     if (PROCUREMENT_ONLY_STATUSES.has(s.status)) return kind === "procurement";

@@ -24,6 +24,12 @@ export function canAccessSettings(role: UserRole) {
   return role === "admin";
 }
 
+// Finance (Lead or Assistant) and admins combine approved requisitions into
+// one consolidated requisition.
+export function canConsolidate(role: UserRole) {
+  return role === "admin" || role === "finance_accountant" || role === "finance_assistant";
+}
+
 export function canViewAudit(role: UserRole) {
   return role === "admin" || isFinanceRole(role) || role === "director";
 }
