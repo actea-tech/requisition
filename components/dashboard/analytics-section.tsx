@@ -205,9 +205,11 @@ export function AnalyticsSection({ data }: { data: DashboardAnalytics }) {
             <CardTitle className="text-base">Raised and paid, by month</CardTitle>
             <CardDescription>Last 12 months, whatever period is selected above.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          {/* The card stretches to the row's height: the chart takes whatever is
+              left and the legend stays pinned to the bottom. */}
+          <CardContent className="flex flex-1 flex-col gap-3">
             <div
-              className="flex h-40 items-end gap-1.5"
+              className="flex min-h-40 flex-1 items-end gap-1.5"
               role="img"
               aria-label="Requisitions submitted and paid per month over the last 12 months"
             >
