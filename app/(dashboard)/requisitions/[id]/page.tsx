@@ -83,7 +83,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     supabase.from("finance_assistant_forwards").select("assistant_id").eq("requisition_id", id),
     supabase
       .from("requisition_expenditures")
-      .select("id, entry_type, description, amount, storage_path")
+      .select("id, entry_type, description, amount, storage_path, file_name, file_size")
       .eq("requisition_id", id)
       .order("created_at"),
     supabase.from("app_settings").select("value").eq("key", "payment_stage_cancellation_enabled").maybeSingle(),
@@ -594,6 +594,8 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     description: e.description,
     amount: e.amount,
     storage_path: e.storage_path,
+    file_name: e.file_name,
+    file_size: e.file_size,
   }));
 
   // A Departmental requisition needs somewhere to actually be reviewed at

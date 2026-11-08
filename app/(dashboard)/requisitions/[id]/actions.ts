@@ -389,6 +389,17 @@ export async function getAttachmentSignedUrl(storagePath: string) {
   return data?.signedUrl ?? null;
 }
 
+// A link that saves the file to the computer under its own name (the preview uses
+// getAttachmentSignedUrl, which just serves the file). Storage row-level security
+// decides who may get either.
+export async function getAttachmentDownloadUrl(storagePath: string, fileName: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.storage
+    .from("requisition-attachments")
+    .createSignedUrl(storagePath, 60 * 5, { download: fileName });
+  return data?.signedUrl ?? null;
+}
+
 export async function setRequisitionSupervisorsAction(requisitionId: string, userIds: string[]) {
   await requireProfile();
   const supabase = await createClient();

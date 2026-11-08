@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { acceptAttribute, describeFileTypes, isFileTypeAllowed, unsupportedFileMessage } from "@/lib/file-types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +12,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   deleteExpenditure,
-  getAttachmentSignedUrl,
   sendAccountingReminderAction,
   submitRequisitionAccountingAction,
 } from "@/app/(dashboard)/requisitions/[id]/actions";
+
+import {
+  DocumentPreviewDialog,
+  DownloadButton,
+  PreviewButton,
+  type PreviewDoc,
+} from "@/components/requisitions/document-viewer";
+import { fileNameFromStoragePath } from "@/lib/document-preview";
+
+/** The receipt/deposit slip attached to an expenditure line, if it has one. */
+export function expenditureDoc(e: ExpenditureRow): PreviewDoc | null {
+  if (!e.storage_path) return null;
+  return { storagePath: e.storage_path, fileName: e.file_name ?? fileNameFromStoragePath(e.storage_path), fileSize: e.file_size };
+}
 
 export interface ExpenditureRow {
   id: string;
@@ -23,6 +36,8 @@ export interface ExpenditureRow {
   description: string;
   amount: number;
   storage_path: string | null;
+  file_name?: string | null;
+  file_size?: number | null;
 }
 
 export function ExpenditureAccountingPanel({
@@ -111,10 +126,7 @@ export function ExpenditureAccountingPanel({
     });
   }
 
-  async function handleView(path: string) {
-    const url = await getAttachmentSignedUrl(path);
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
-  }
+  const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
 
   function handleSendReminder() {
     startTransition(async () => {
@@ -125,6 +137,7 @@ export function ExpenditureAccountingPanel({
   }
 
   return (
+    <>
     <Card id="expenditure-accounting">
       <CardHeader>
         <CardTitle className="text-base">Expenditure accounting</CardTitle>
@@ -151,10 +164,11 @@ export function ExpenditureAccountingPanel({
                   <span className="text-xs text-muted-foreground">
                     {currency} {e.amount.toLocaleString()}
                   </span>
-                  {e.storage_path ? (
-                    <Button variant="ghost" size="icon-sm" onClick={() => handleView(e.storage_path!)}>
-                      <Download className="size-4" />
-                    </Button>
+                  {expenditureDoc(e) ? (
+                    <>
+                      <PreviewButton onClick={() => setPreviewDoc(expenditureDoc(e))} />
+                      <DownloadButton doc={expenditureDoc(e)!} />
+                    </>
                   ) : null}
                   {canEdit ? (
                     <Button
@@ -251,5 +265,7 @@ export function ExpenditureAccountingPanel({
         ) : null}
       </CardContent>
     </Card>
+    <DocumentPreviewDialog doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+    </>
   );
 }
