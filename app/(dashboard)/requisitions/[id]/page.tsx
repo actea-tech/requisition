@@ -56,6 +56,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     { data: copiedInRaw },
     { data: consolidationMembersRaw },
     { data: partOfRaw },
+    { data: recallOptionRaw },
   ] = await Promise.all([
     supabase
       .from("form_field_config")
@@ -111,6 +112,11 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
     requisition.requisition_kind === "consolidated"
       ? Promise.resolve({ data: null })
       : supabase.rpc("get_requisition_consolidation", { p_requisition_id: id }),
+    // What the requester can do about recalling it right now (the database decides: it knows
+    // whether Finance has acted on it).
+    requisition.requester_id === profile.id
+      ? supabase.rpc("requisition_recall_option", { p_requisition_id: id })
+      : Promise.resolve({ data: null }),
   ]);
 
   const currencyOptions = (currenciesRaw ?? []).map((c) => ({ value: c.code, label: c.code }));
@@ -124,6 +130,20 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
   // the Assistant should be able to do anything the Accountant could for
   // this specific requisition, not just approve/reject it.
   const isForwardedAssistant = (assistantForwardsRaw?.[0]?.assistant_id ?? null) === profile.id;
+
+  // Recall: pulling a submitted requisition back (directly, or by asking Finance once Finance has acted).
+  const recallOption = (recallOptionRaw as string | null) ?? "none";
+  const recallRequestPending = requisition.recall_request_status === "requested";
+  const declinedRecallReason =
+    isOwner && requisition.recall_request_status === "declined"
+      ? ([...(historyRaw ?? [])].reverse().find((h) => h.decision === "recall_declined")?.comments ?? null)
+      : null;
+  const canDecideRecall =
+    recallRequestPending &&
+    (isAdmin || profile.role === "finance_accountant" || profile.role === "finance_assistant") &&
+    (!isOwner || isAdmin);
+  // After recalling, the requester can cancel it instead of resubmitting.
+  const canCancelRecalled = isOwner && requisition.status === "returned" && requisition.recalled;
 
   // Consolidated payment: Finance combined several approved requisitions into this one. Its amount and
   // payees come from them (read-only), it cannot be re-typed as another kind, and Finance still chooses
@@ -692,6 +712,14 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
             }
           : null
       }
+      recall={{
+        canRecall: recallOption === "recall",
+        canRequest: recallOption === "request",
+        pendingRequest: recallRequestPending ? { reason: requisition.recall_reason, requestedAt: requisition.recall_requested_at } : null,
+        declinedReason: declinedRecallReason,
+        canDecide: canDecideRecall,
+        canCancelRecalled,
+      }}
       partOfConsolidation={
         partOf
           ? { id: partOf.consolidated_id, number: partOf.requisition_number, status: partOf.status, canOpen: canOpenConsolidated }

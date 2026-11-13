@@ -30,6 +30,10 @@ const DECISION_LABELS: Record<string, string> = {
   accounting_approved: "Accounting approved",
   accounting_returned: "Accounting returned",
   commented: "Comment (copied in)",
+  recalled: "Recalled",
+  recall_requested: "Recall requested",
+  recall_approved: "Recall approved",
+  recall_declined: "Recall declined",
 };
 
 const BRAND = {

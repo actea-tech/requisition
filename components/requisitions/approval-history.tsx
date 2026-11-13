@@ -26,6 +26,10 @@ const DECISION_LABELS: Record<ApprovalDecision, string> = {
   accounting_returned: "Accounting returned",
   invoice_submitted: "Invoice submitted",
   commented: "Commented",
+  recalled: "Recalled",
+  recall_requested: "Recall requested",
+  recall_approved: "Recall approved",
+  recall_declined: "Recall declined",
 };
 
 // invoice_submitted/accounting_submitted are the requester's own action,
@@ -49,6 +53,10 @@ const DECISION_VARIANT: Record<ApprovalDecision, "secondary" | "success" | "dest
   accounting_returned: "warning",
   invoice_submitted: "secondary",
   commented: "secondary",
+  recalled: "warning",
+  recall_requested: "secondary",
+  recall_approved: "warning",
+  recall_declined: "destructive",
 };
 
 export interface HistoryEntry {

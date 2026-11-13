@@ -446,3 +446,48 @@ export async function setConsolidationMembersAction(consolidatedId: string, requ
   revalidatePath(`/requisitions/${consolidatedId}`);
   return { error: error?.message ?? null };
 }
+
+// Recalling: the requester pulls a requisition back (or, once Finance has acted,
+// asks Finance to allow it), and can cancel it afterwards. The database decides
+// what is allowed at each stage.
+export async function recallRequisitionAction(requisitionId: string, reason: string) {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("recall_requisition", { p_requisition_id: requisitionId, p_reason: reason });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
+export async function requestRecallAction(requisitionId: string, reason: string) {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("request_requisition_recall", {
+    p_requisition_id: requisitionId,
+    p_reason: reason,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
+export async function decideRecallRequestAction(requisitionId: string, approve: boolean, comment: string | null) {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("decide_recall_request", {
+    p_requisition_id: requisitionId,
+    p_approve: approve,
+    p_comment: comment,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
+
+export async function cancelRecalledRequisitionAction(requisitionId: string, reason: string) {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_own_recalled_requisition", {
+    p_requisition_id: requisitionId,
+    p_reason: reason,
+  });
+  revalidatePath(`/requisitions/${requisitionId}`);
+  return { error: error?.message ?? null };
+}
