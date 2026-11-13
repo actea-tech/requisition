@@ -21,6 +21,7 @@ import { FinanceGroupPanel } from "@/components/requisitions/finance-group-panel
 import { AuthorizerGroupPanel } from "@/components/requisitions/authorizer-group-panel";
 import { SupervisorsPanel } from "@/components/requisitions/supervisors-panel";
 import { CopiedInPanel } from "@/components/requisitions/copied-in-panel";
+import { CancelRecalledControl, RecallControl, RecallRequestCard } from "@/components/requisitions/recall-controls";
 import {
   ConsolidationPanel,
   type ConsolidationCandidate,
@@ -111,6 +112,7 @@ export function RequisitionWorkspace({
   requisitionKindOptions,
   consolidation,
   partOfConsolidation,
+  recall,
 }: {
   requisition: RequisitionRowForForm;
   sections: SectionSpec[];
@@ -190,6 +192,15 @@ export function RequisitionWorkspace({
     editable: boolean;
     canOpenMembers: boolean;
   } | null;
+  /** Recalling: what the viewer can do, and any request in progress. */
+  recall: {
+    canRecall: boolean;
+    canRequest: boolean;
+    pendingRequest: { reason: string | null; requestedAt: string | null } | null;
+    declinedReason: string | null;
+    canDecide: boolean;
+    canCancelRecalled: boolean;
+  };
   /** Set when this requisition was combined into a consolidated payment. */
   partOfConsolidation: { id: string; number: string | null; status: string; canOpen: boolean } | null;
 }) {
@@ -489,6 +500,25 @@ export function RequisitionWorkspace({
             ) : null}
           </div>
         </div>
+
+        {recall.pendingRequest ? (
+          <RecallRequestCard
+            requisitionId={requisition.id}
+            requesterName={requisition.requesterName}
+            reason={recall.pendingRequest.reason}
+            requestedAt={recall.pendingRequest.requestedAt}
+            canDecide={recall.canDecide}
+          />
+        ) : null}
+
+        {recall.declinedReason !== null ? (
+          <Card className="border-destructive/40 bg-destructive/5">
+            <CardContent className="pt-6 text-sm">
+              <p className="font-medium text-destructive">Recall request declined</p>
+              <p className="mt-1 text-muted-foreground">{recall.declinedReason}</p>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {partOfConsolidation ? (
           <Card className="border-primary/30 bg-primary/5">
@@ -979,6 +1009,10 @@ export function RequisitionWorkspace({
               </Button>
             ) : null}
 
+            {recall.canRecall ? <RecallControl requisitionId={requisition.id} mode="recall" /> : null}
+            {recall.canRequest ? <RecallControl requisitionId={requisition.id} mode="request" /> : null}
+            {recall.canCancelRecalled ? <CancelRecalledControl requisitionId={requisition.id} /> : null}
+
             {permissions.canCancelRequisition ? (
               <CancelRequisitionControl
                 requisitionId={requisition.id}
@@ -995,7 +1029,10 @@ export function RequisitionWorkspace({
             !permissions.canCancelRequisition &&
             !permissions.canEditExpenditures &&
             !permissions.canReviewAccounting &&
-            !permissions.canSubmitInvoice ? (
+            !permissions.canSubmitInvoice &&
+            !recall.canRecall &&
+            !recall.canRequest &&
+            !recall.canCancelRecalled ? (
               <p className="text-sm text-muted-foreground">No action needed from you right now.</p>
             ) : null}
           </CardContent>

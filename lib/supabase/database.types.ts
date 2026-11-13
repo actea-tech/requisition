@@ -27,7 +27,11 @@ export type ApprovalDecision =
   | "accounting_approved"
   | "accounting_returned"
   | "invoice_submitted"
-  | "commented";
+  | "commented"
+  | "recalled"
+  | "recall_requested"
+  | "recall_approved"
+  | "recall_declined";
 export type RequisitionStatus =
   | "draft"
   | "dept_review"
@@ -199,6 +203,10 @@ export interface Database {
           requires_reapproval: boolean;
           cancellation_status: CancellationStatus | null;
           cancellation_reason: string | null;
+          recalled: boolean;
+          recall_request_status: "requested" | "declined" | null;
+          recall_reason: string | null;
+          recall_requested_at: string | null;
           cancellation_requested_by: string | null;
           related_requisition_id: string | null;
           accounting_shortfall_note: string | null;
@@ -584,6 +592,26 @@ export interface Database {
       get_requisition_consolidation: {
         Args: { p_requisition_id: string };
         Returns: { consolidated_id: string; requisition_number: string | null; status: string }[];
+      };
+      requisition_recall_option: {
+        Args: { p_requisition_id: string };
+        Returns: string;
+      };
+      recall_requisition: {
+        Args: { p_requisition_id: string; p_reason: string };
+        Returns: void;
+      };
+      request_requisition_recall: {
+        Args: { p_requisition_id: string; p_reason: string };
+        Returns: void;
+      };
+      decide_recall_request: {
+        Args: { p_requisition_id: string; p_approve: boolean; p_comment?: string | null };
+        Returns: void;
+      };
+      cancel_own_recalled_requisition: {
+        Args: { p_requisition_id: string; p_reason: string };
+        Returns: void;
       };
       get_dashboard_analytics: {
         Args: { p_range?: string };
